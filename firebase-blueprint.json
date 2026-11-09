@@ -1,0 +1,317 @@
+{
+  "entities": {
+    "Product": {
+      "title": "Product",
+      "description": "An e-commerce product available in the store",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the product"
+        },
+        "name": {
+          "type": "string",
+          "description": "Product display title",
+          "maxLength": 150
+        },
+        "description": {
+          "type": "string",
+          "description": "Detailed description of the product",
+          "maxLength": 3000
+        },
+        "category": {
+          "type": "string",
+          "description": "Category name",
+          "maxLength": 50
+        },
+        "price": {
+          "type": "number",
+          "description": "Regular price in PKR"
+        },
+        "discountPrice": {
+          "type": "number",
+          "description": "Optional discounted price in PKR"
+        },
+        "stock": {
+          "type": "number",
+          "description": "Available stock quantity"
+        },
+        "isAvailable": {
+          "type": "boolean",
+          "description": "Whether product is active and available"
+        },
+        "images": {
+          "type": "array",
+          "description": "List of image URLs"
+        },
+        "specifications": {
+          "type": "object",
+          "description": "Key-value product specifications"
+        },
+        "featured": {
+          "type": "boolean",
+          "description": "Whether product is highlighted on homepage"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "ISO timestamp or server timestamp"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "ISO timestamp or server timestamp"
+        }
+      },
+      "required": ["name", "price", "category", "stock", "isAvailable"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Customer purchase order placed via website / WhatsApp",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique order tracking ID"
+        },
+        "customerId": {
+          "type": "string",
+          "description": "UID of registered customer if logged in"
+        },
+        "customerName": {
+          "type": "string",
+          "description": "Full name of the customer",
+          "maxLength": 100
+        },
+        "phone": {
+          "type": "string",
+          "description": "Customer WhatsApp or phone number",
+          "maxLength": 30
+        },
+        "address": {
+          "type": "string",
+          "description": "Delivery street address",
+          "maxLength": 400
+        },
+        "city": {
+          "type": "string",
+          "description": "City in Pakistan",
+          "maxLength": 50
+        },
+        "items": {
+          "type": "array",
+          "description": "List of ordered items with product details and quantity"
+        },
+        "subtotal": {
+          "type": "number",
+          "description": "Subtotal amount in PKR"
+        },
+        "deliveryCharges": {
+          "type": "number",
+          "description": "Delivery charges in PKR"
+        },
+        "totalAmount": {
+          "type": "number",
+          "description": "Final total amount in PKR"
+        },
+        "status": {
+          "type": "string",
+          "description": "Order status",
+          "enum": ["Pending Confirmation", "Confirmed", "Shipped", "Delivered", "Cancelled"]
+        },
+        "notes": {
+          "type": "string",
+          "description": "Special delivery instructions or notes",
+          "maxLength": 500
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Creation timestamp"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Last update timestamp"
+        }
+      },
+      "required": ["customerName", "phone", "address", "city", "items", "totalAmount", "status"]
+    },
+    "Settings": {
+      "title": "Settings",
+      "description": "Public and administrative store settings",
+      "type": "object",
+      "properties": {
+        "storeName": {
+          "type": "string",
+          "description": "Brand name of the store",
+          "maxLength": 100
+        },
+        "ownerName": {
+          "type": "string",
+          "description": "Name of the business owner",
+          "maxLength": 100
+        },
+        "tagline": {
+          "type": "string",
+          "description": "Store tagline",
+          "maxLength": 200
+        },
+        "whatsappNumber": {
+          "type": "string",
+          "description": "Owner WhatsApp number for order messages",
+          "maxLength": 30
+        },
+        "contactEmail": {
+          "type": "string",
+          "description": "Public contact email",
+          "maxLength": 100
+        },
+        "contactPhone": {
+          "type": "string",
+          "description": "Secondary contact phone",
+          "maxLength": 30
+        },
+        "businessAddress": {
+          "type": "string",
+          "description": "Store physical or warehouse address",
+          "maxLength": 300
+        },
+        "logoUrl": {
+          "type": "string",
+          "description": "Business logo URL"
+        },
+        "bannerUrl": {
+          "type": "string",
+          "description": "Website banner URL"
+        },
+        "announcement": {
+          "type": "string",
+          "description": "Top announcement bar message",
+          "maxLength": 250
+        },
+        "aboutText": {
+          "type": "string",
+          "description": "Store description and about text",
+          "maxLength": 2000
+        },
+        "ownerIntro": {
+          "type": "string",
+          "description": "Owner introduction",
+          "maxLength": 1000
+        },
+        "deliveryFee": {
+          "type": "number",
+          "description": "Standard delivery fee in PKR"
+        },
+        "freeDeliveryThreshold": {
+          "type": "number",
+          "description": "Minimum order for free delivery in PKR"
+        },
+        "paymentInstructions": {
+          "type": "string",
+          "description": "Instructions for JazzCash, EasyPaisa, Bank Transfer",
+          "maxLength": 1000
+        },
+        "easyPaisaAccount": {
+          "type": "string",
+          "description": "EasyPaisa account details",
+          "maxLength": 200
+        },
+        "jazzCashAccount": {
+          "type": "string",
+          "description": "JazzCash account details",
+          "maxLength": 200
+        },
+        "bankAccountDetails": {
+          "type": "string",
+          "description": "Bank account details",
+          "maxLength": 300
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Last settings update timestamp"
+        }
+      }
+    },
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Registered customer or owner user record",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Firebase Auth user ID"
+        },
+        "fullName": {
+          "type": "string",
+          "description": "Customer or owner full name",
+          "maxLength": 100
+        },
+        "email": {
+          "type": "string",
+          "description": "User email address",
+          "maxLength": 120
+        },
+        "phone": {
+          "type": "string",
+          "description": "Mobile phone number",
+          "maxLength": 30
+        },
+        "role": {
+          "type": "string",
+          "description": "User role",
+          "enum": ["customer", "owner"]
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Registration date ISO timestamp"
+        }
+      },
+      "required": ["uid", "fullName", "email", "role"]
+    },
+    "Admin": {
+      "title": "Admin",
+      "description": "Record of authorized store administrators",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "User UID from Firebase Auth"
+        },
+        "email": {
+          "type": "string",
+          "description": "Admin email address"
+        },
+        "role": {
+          "type": "string",
+          "description": "Role level",
+          "enum": ["owner", "admin"]
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Creation timestamp"
+        }
+      },
+      "required": ["uid", "email", "role"]
+    }
+  },
+  "firestore": {
+    "/products/{productId}": {
+      "schema": "Product",
+      "description": "Collection of all e-commerce products"
+    },
+    "/orders/{orderId}": {
+      "schema": "Order",
+      "description": "Collection of customer orders"
+    },
+    "/settings/{settingId}": {
+      "schema": "Settings",
+      "description": "Store settings including WhatsApp contact and payment details"
+    },
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Collection of customer and owner user profiles"
+    },
+    "/admins/{adminId}": {
+      "schema": "Admin",
+      "description": "Collection of verified owner/admin user IDs"
+    }
+  }
+}

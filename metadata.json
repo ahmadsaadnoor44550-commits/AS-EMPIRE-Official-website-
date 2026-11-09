@@ -1,0 +1,8 @@
+{
+  "name": "AS EMPIRE - Premium E-Commerce Store",
+  "description": "AS EMPIRE is a luxury, premium online shopping platform in Pakistan with WhatsApp order integration, real-time product catalog, and private owner dashboard.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
