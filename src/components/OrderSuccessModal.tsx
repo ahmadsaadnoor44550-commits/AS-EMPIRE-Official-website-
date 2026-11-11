@@ -30,7 +30,9 @@ export const OrderSuccessModal: React.FC<OrderSuccessModalProps> = ({
   const [copied, setCopied] = useState(false);
   const [loadedOrder, setLoadedOrder] = useState<Order | null>(null);
   const [showReceipt, setShowReceipt] = useState(false);
-  const { settings, getOrderById } = useStore();
+  const [isCancelled, setIsCancelled] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const { settings, getOrderById, cancelOrder } = useStore();
 
   useEffect(() => {
     if (orderId) {
@@ -68,7 +70,7 @@ export const OrderSuccessModal: React.FC<OrderSuccessModalProps> = ({
             ✓ Order Placed & Confirmed Directly
           </span>
           <h3 className="font-empire text-2xl font-bold text-slate-900">
-            Thank You for Shopping with AS Empire!
+            Thank You for Shopping with {settings.storeName || 'SAAD TRADING COMPANY'}!
           </h3>
           <p className="text-xs text-slate-600 max-w-sm mx-auto">
             Your order has been successfully recorded into our database. The owner has been notified and your official sales invoice is ready.
@@ -145,6 +147,49 @@ export const OrderSuccessModal: React.FC<OrderSuccessModalProps> = ({
               <ShoppingBag className="w-3.5 h-3.5" />
               <span>Continue Shopping</span>
             </button>
+          </div>
+
+          {/* Mistake order cancellation */}
+          <div className="pt-2 border-t border-slate-100">
+            {isCancelled ? (
+              <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-medium">
+                ✕ This order has been cancelled successfully.
+              </div>
+            ) : showCancelConfirm ? (
+              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-800 space-y-2">
+                <p className="font-semibold">Did you place this order mistakenly? Cancel it now?</p>
+                <div className="flex gap-2 justify-center">
+                  <button
+                    onClick={async () => {
+                      try {
+                        await cancelOrder(orderId);
+                        setIsCancelled(true);
+                        setShowCancelConfirm(false);
+                      } catch (err) {
+                        console.error('Failed to cancel order:', err);
+                      }
+                    }}
+                    className="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-bold text-[11px]"
+                  >
+                    Yes, Cancel My Order
+                  </button>
+                  <button
+                    onClick={() => setShowCancelConfirm(false)}
+                    className="px-3 py-1.5 rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium text-[11px]"
+                  >
+                    Keep Order
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setShowCancelConfirm(true)}
+                className="text-[11px] text-slate-400 hover:text-rose-600 underline font-medium transition-colors"
+              >
+                Ordered by mistake? Click here to cancel this order
+              </button>
+            )}
           </div>
         </div>
 

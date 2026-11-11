@@ -7,7 +7,9 @@ import {
   Trash2, 
   Plus, 
   Package, 
-  AlertCircle 
+  AlertCircle,
+  Camera,
+  Loader2 
 } from 'lucide-react';
 
 interface ProductFormModalProps {
@@ -43,6 +45,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
 
   const [saving, setSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [isProcessingImages, setIsProcessingImages] = useState(false);
 
   useEffect(() => {
     if (productToEdit) {
@@ -73,19 +76,19 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
 
   if (!isOpen) return null;
 
-  // Compress image file to base64
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
+  // High-performance image compressor for mobile phones and cameras
+  const processFileToCompressedDataUrl = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      // Create Object URL to avoid massive base64 memory overhead on mobile browsers
+      const objectUrl = URL.createObjectURL(file);
+      const img = new Image();
 
-    Array.from(files).forEach((file) => {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const img = new Image();
-        img.onload = () => {
+      img.onload = () => {
+        try {
           const canvas = document.createElement('canvas');
           let width = img.width;
           let height = img.height;
+          // 800px provides crisp, razor-sharp detail on mobile screens while staying ~60KB
           const maxDim = 800;
 
           if (width > maxDim || height > maxDim) {
@@ -101,18 +104,57 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
           canvas.width = width;
           canvas.height = height;
           const ctx = canvas.getContext('2d');
-          if (ctx) {
-            ctx.drawImage(img, 0, 0, width, height);
-            const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
-            setImages((prev) => [...prev, dataUrl]);
+          if (!ctx) {
+            URL.revokeObjectURL(objectUrl);
+            reject(new Error('Canvas context unavailable'));
+            return;
           }
-        };
-        img.src = event.target?.result as string;
-      };
-      reader.readAsDataURL(file);
-    });
 
-    e.target.value = '';
+          // Ensure solid white background
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, width, height);
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // 0.78 quality provides crystal clarity for mobile screens and fits safely in Firestore
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.78);
+          URL.revokeObjectURL(objectUrl);
+          resolve(dataUrl);
+        } catch (err) {
+          URL.revokeObjectURL(objectUrl);
+          reject(err);
+        }
+      };
+
+      img.onerror = (err) => {
+        URL.revokeObjectURL(objectUrl);
+        reject(err);
+      };
+
+      img.src = objectUrl;
+    });
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setIsProcessingImages(true);
+    setErrorMsg(null);
+    try {
+      const fileList = Array.from(files);
+      const processedList: string[] = [];
+      for (const file of fileList) {
+        const compressed = await processFileToCompressedDataUrl(file);
+        processedList.push(compressed);
+      }
+      setImages((prev) => [...prev, ...processedList]);
+    } catch (err) {
+      console.error('Failed to process mobile image:', err);
+      setErrorMsg('Could not process photo from your mobile device. Please try another image.');
+    } finally {
+      setIsProcessingImages(false);
+      e.target.value = '';
+    }
   };
 
   const handleAddImageUrl = () => {
@@ -189,7 +231,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
     <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 animate-fadeIn">
       <div className="fixed inset-0" onClick={onClose} />
 
-      <div className="relative w-full max-w-3xl bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 space-y-6 shadow-2xl z-10 my-8">
+      <div className="relative w-full max-w-3xl bg-white border border-slate-200 rounded-3xl p-4 sm:p-8 space-y-5 sm:space-y-6 shadow-2xl z-10 my-4 sm:my-8 max-h-[92vh] overflow-y-auto">
         
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-100 pb-4">
@@ -343,34 +385,66 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
               Product Pictures ({images.length} added)
             </label>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <label className="p-4 rounded-2xl border-2 border-dashed border-slate-300 hover:border-amber-500 bg-slate-50 flex flex-col items-center justify-center gap-1 cursor-pointer transition-colors">
-                <Upload className="w-5 h-5 text-slate-400" />
-                <span className="font-semibold text-slate-700">Upload Photos from Device</span>
-                <span className="text-[10px] text-slate-400">JPG, PNG, WebP</span>
-                <input type="file" multiple accept="image/*" onChange={handleFileUpload} className="hidden" />
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {/* Mobile Camera Direct Snap */}
+              <label className="p-3.5 rounded-2xl border-2 border-dashed border-amber-300 hover:border-amber-500 bg-amber-50/50 flex flex-col items-center justify-center gap-1 cursor-pointer transition-colors text-center">
+                <Camera className="w-5 h-5 text-amber-700" />
+                <span className="font-bold text-amber-900 text-xs">Take Photo (Camera)</span>
+                <span className="text-[10px] text-amber-700">Mobile rear camera</span>
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  capture="environment" 
+                  onChange={handleFileUpload} 
+                  disabled={isProcessingImages}
+                  className="hidden" 
+                />
               </label>
 
-              <div className="p-4 rounded-2xl border border-slate-200 bg-slate-50 flex flex-col justify-between gap-2">
-                <span className="font-semibold text-slate-700">Or Paste Image URL</span>
-                <div className="flex gap-2">
+              {/* Upload from Gallery / Device */}
+              <label className="p-3.5 rounded-2xl border-2 border-dashed border-slate-300 hover:border-amber-500 bg-slate-50 flex flex-col items-center justify-center gap-1 cursor-pointer transition-colors text-center">
+                <Upload className="w-5 h-5 text-slate-500" />
+                <span className="font-semibold text-slate-700 text-xs">Choose from Gallery</span>
+                <span className="text-[10px] text-slate-400">Multiple files supported</span>
+                <input 
+                  type="file" 
+                  multiple 
+                  accept="image/*" 
+                  onChange={handleFileUpload} 
+                  disabled={isProcessingImages}
+                  className="hidden" 
+                />
+              </label>
+
+              {/* Paste URL */}
+              <div className="p-3.5 rounded-2xl border border-slate-200 bg-slate-50 flex flex-col justify-between gap-1.5">
+                <span className="font-semibold text-slate-700 text-xs">Or Web Image URL</span>
+                <div className="flex gap-1.5">
                   <input
                     type="url"
                     placeholder="https://..."
                     value={imageUrlInput}
                     onChange={(e) => setImageUrlInput(e.target.value)}
-                    className="flex-1 px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-amber-600"
+                    className="flex-1 min-w-0 px-2.5 py-1.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-amber-600"
                   />
                   <button
                     type="button"
                     onClick={handleAddImageUrl}
-                    className="px-3 py-1.5 rounded-xl bg-slate-900 text-white font-bold hover:bg-slate-800"
+                    className="px-3 py-1.5 rounded-xl bg-slate-900 text-white font-bold text-xs hover:bg-slate-800 shrink-0"
                   >
                     Add
                   </button>
                 </div>
               </div>
             </div>
+
+            {/* Image processing loading bar */}
+            {isProcessingImages && (
+              <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-center gap-2 text-amber-900 text-xs font-semibold animate-pulse">
+                <Loader2 className="w-4 h-4 animate-spin text-amber-600" />
+                <span>Compressing & optimizing photo for fast mobile display...</span>
+              </div>
+            )}
 
             {/* Images grid */}
             {images.length > 0 && (

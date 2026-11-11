@@ -93,6 +93,13 @@ function StorefrontApp() {
     };
   }, [isOwner]);
 
+  // Synchronize dynamic browser title with customized store name & owner
+  useEffect(() => {
+    const storeName = settings.storeName || 'SAAD TRADING COMPANY';
+    const ownerName = settings.ownerName || 'Ahmad Saad';
+    document.title = `${storeName} – Official Store | ${ownerName}`;
+  }, [settings.storeName, settings.ownerName]);
+
   // Filtered and Sorted Products
   const displayedProducts = useMemo(() => {
     let list = [...products];
@@ -243,7 +250,7 @@ function StorefrontApp() {
             </h3>
             <p className="text-xs text-slate-500 leading-relaxed max-w-sm mx-auto">
               {products.length === 0
-                ? 'Welcome to AS Empire. We are updating our stock of Mobile LCDs, LEDs, and OLED Screens. Inquire directly on WhatsApp for immediate availability.'
+                ? `Welcome to ${settings.storeName || 'SAAD TRADING COMPANY'}. We are updating our stock of Mobile LCDs, LEDs, and OLED Screens. Inquire directly on WhatsApp for immediate availability.`
                 : 'Try clearing your search terms or selecting another category.'}
             </p>
 
@@ -258,7 +265,7 @@ function StorefrontApp() {
                   </button>
                 ) : (
                   <a
-                    href={`https://wa.me/${cleanPhone}?text=${encodeURIComponent('Assalam-o-Alaikum AS Empire! I am looking for a mobile display screen/accessory.')}`}
+                    href={`https://wa.me/${cleanPhone}?text=${encodeURIComponent(`Assalam-o-Alaikum ${settings.storeName || 'SAAD TRADING COMPANY'}! I am looking for a mobile display screen/accessory.`)}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-sm"
@@ -282,7 +289,7 @@ function StorefrontApp() {
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5">
             {displayedProducts.map((product) => (
               <ProductCard
                 key={product.id}
@@ -305,7 +312,7 @@ function StorefrontApp() {
                 Verified Displays & Screen Replacements
               </h3>
               <p className="text-xs text-slate-600 leading-relaxed">
-                Connect directly with AS Empire on WhatsApp to verify display model compatibility, check bulk wholesale rates, or place express retail orders.
+                Connect directly with SAAD TRADING COMPANY on WhatsApp to verify display model compatibility, check bulk wholesale rates, or place express retail orders.
               </p>
             </div>
 
@@ -329,7 +336,7 @@ function StorefrontApp() {
 
             <div className="text-center lg:text-right space-y-2">
               <a
-                href={`https://wa.me/${cleanPhone}?text=${encodeURIComponent('Assalam-o-Alaikum AS Empire! I am interested in placing an order for mobile screens.')}`}
+                href={`https://wa.me/${cleanPhone}?text=${encodeURIComponent(`Assalam-o-Alaikum ${settings.storeName || 'SAAD TRADING COMPANY'}! I am interested in placing an order for mobile screens.`)}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase tracking-wider shadow-sm transition-all"

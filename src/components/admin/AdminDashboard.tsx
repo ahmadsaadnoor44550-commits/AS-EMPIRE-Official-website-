@@ -28,7 +28,11 @@ import {
   Mail,
   User,
   Image as ImageIcon,
-  Printer
+  Printer,
+  X,
+  Truck,
+  Copy,
+  Check
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -44,6 +48,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToStore 
     updateProduct, 
     deleteProduct, 
     updateOrderStatus, 
+    deleteOrder,
     updateSettings,
     addBusinessCategory,
     removeBusinessCategory
@@ -55,7 +60,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToStore 
     allCustomers, 
     loadingCustomers, 
     refreshCustomers,
-    createAdditionalOwnerAccount 
+    createAdditionalOwnerAccount,
+    deleteCustomer
   } = useAuth();
 
   const [activeTab, setActiveTab] = useState<'products' | 'orders' | 'customers' | 'settings' | 'new-account' | 'guide'>('products');
@@ -63,6 +69,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToStore 
   // Product Form Modal state
   const [productModalOpen, setProductModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+
+  // In-app Deletion Confirmation Dialogs (no window.confirm popup blocking)
+  const [productToDelete, setProductToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [customerToDelete, setCustomerToDelete] = useState<UserProfile | null>(null);
+  const [orderToDelete, setOrderToDelete] = useState<Order | null>(null);
+  const [isDeletingCustomer, setIsDeletingCustomer] = useState(false);
+  const [isDeletingProduct, setIsDeletingProduct] = useState(false);
+  const [isDeletingOrder, setIsDeletingOrder] = useState(false);
+
+  // Edit Website Name Modal state
+  const [editSiteNameModalOpen, setEditSiteNameModalOpen] = useState(false);
+  const [siteNameInput, setSiteNameInput] = useState(settings.storeName || 'SAAD TRADING COMPANY');
+  const [siteTaglineInput, setSiteTaglineInput] = useState(settings.tagline || 'Mobile Displays & Accessories');
+  const [savingSiteName, setSavingSiteName] = useState(false);
 
   // Printable Order Receipt state
   const [receiptOrder, setReceiptOrder] = useState<Order | null>(null);
@@ -88,9 +108,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToStore 
   const [newAccountMsg, setNewAccountMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [creatingOwner, setCreatingOwner] = useState(false);
 
-  // Sync settingsForm when store settings change
+  // Sync settingsForm and site name input when store settings change
   React.useEffect(() => {
     setSettingsForm(settings);
+    setSiteNameInput(settings.storeName || 'SAAD TRADING COMPANY');
+    setSiteTaglineInput(settings.tagline || 'Mobile Displays & Accessories');
   }, [settings]);
 
   // Statistics
@@ -137,9 +159,63 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToStore 
     }
   };
 
-  const handleDeleteProduct = async (id: string, name: string) => {
-    if (window.confirm(`Are you sure you want to permanently delete "${name}" from AS Empire?`)) {
-      await deleteProduct(id);
+  const handleDeleteProduct = (id: string, name: string) => {
+    setProductToDelete({ id, name });
+  };
+
+  const confirmDeleteProduct = async () => {
+    if (!productToDelete) return;
+    setIsDeletingProduct(true);
+    try {
+      await deleteProduct(productToDelete.id);
+      setProductToDelete(null);
+    } catch (err) {
+      console.error('Failed to delete product:', err);
+    } finally {
+      setIsDeletingProduct(false);
+    }
+  };
+
+  const confirmDeleteCustomer = async () => {
+    if (!customerToDelete) return;
+    setIsDeletingCustomer(true);
+    try {
+      await deleteCustomer(customerToDelete.uid);
+      setCustomerToDelete(null);
+    } catch (err) {
+      console.error('Failed to delete customer:', err);
+    } finally {
+      setIsDeletingCustomer(false);
+    }
+  };
+
+  const confirmDeleteOrder = async () => {
+    if (!orderToDelete) return;
+    setIsDeletingOrder(true);
+    try {
+      await deleteOrder(orderToDelete.id);
+      setOrderToDelete(null);
+    } catch (err) {
+      console.error('Failed to delete order:', err);
+    } finally {
+      setIsDeletingOrder(false);
+    }
+  };
+
+  const handleSaveSiteName = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!siteNameInput.trim()) return;
+    setSavingSiteName(true);
+    try {
+      await updateSettings({
+        storeName: siteNameInput.trim(),
+        tagline: siteTaglineInput.trim(),
+      });
+      setEditSiteNameModalOpen(false);
+    } catch (err) {
+      console.error('Failed to update website name:', err);
+    } finally {
+      setSavingSiteName(false);
     }
   };
 
@@ -181,18 +257,65 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToStore 
       setNewOwnerEmail('');
       setNewOwnerPhone('');
       setNewOwnerPassword('');
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Failed to create owner account.';
-      setNewAccountMsg({ type: 'error', text: msg });
+    } catch (err: any) {
+      if (err?.code === 'auth/operation-not-allowed' || err?.message?.includes('operation-not-allowed')) {
+        setNewAccountMsg({
+          type: 'error',
+          text: 'Notice: Email/Password account registration is currently disabled in your Firebase console. Note: As the owner (ahmadsaadnoor44550@gmail.com), you already have 100% full master control via Google login, so you do not need to create another account.'
+        });
+      } else {
+        const msg = err instanceof Error ? err.message : 'Failed to create owner account.';
+        setNewAccountMsg({ type: 'error', text: msg });
+      }
     } finally {
       setCreatingOwner(false);
+    }
+  };
+
+  const [shareLinkCopied, setShareLinkCopied] = useState(false);
+  const [devLinkCopied, setDevLinkCopied] = useState(false);
+  const OFFICIAL_STORE_SHARE_LINK = 'https://ais-pre-lwav3ky3zwv5fq4cpvewtq-348296696538.asia-southeast1.run.app';
+  const DIRECT_DEV_SHARE_LINK = 'https://ais-dev-lwav3ky3zwv5fq4cpvewtq-348296696538.asia-southeast1.run.app';
+
+  const copyToClipboard = async (text: string) => {
+    try {
+      if (navigator.clipboard) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+      }
+      return true;
+    } catch (err) {
+      console.error('Failed to copy text:', err);
+      return false;
+    }
+  };
+
+  const handleCopyOfficialStoreLink = async () => {
+    const ok = await copyToClipboard(OFFICIAL_STORE_SHARE_LINK);
+    if (ok) {
+      setShareLinkCopied(true);
+      setTimeout(() => setShareLinkCopied(false), 2500);
+    }
+  };
+
+  const handleCopyDevLink = async () => {
+    const ok = await copyToClipboard(DIRECT_DEV_SHARE_LINK);
+    if (ok) {
+      setDevLinkCopied(true);
+      setTimeout(() => setDevLinkCopied(false), 2500);
     }
   };
 
   const openWhatsAppCustomer = (order: Order) => {
     let clean = order.phone.replace(/[^0-9]/g, '');
     if (clean.startsWith('03')) clean = '92' + clean.slice(1);
-    const msg = `Assalam-o-Alaikum ${order.customerName}! This is AS Empire regarding your Order #${order.id}. Current status: ${order.status}.`;
+    const msg = `Assalam-o-Alaikum ${order.customerName}! This is SAAD TRADING COMPANY regarding your Order #${order.id}. Current status: ${order.status}.`;
     window.open(`https://wa.me/${clean}?text=${encodeURIComponent(msg)}`, '_blank');
   };
 
@@ -200,43 +323,61 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToStore 
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans">
       {/* Top Header */}
       <header className="sticky top-0 z-30 bg-white border-b border-slate-200 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-0 min-h-[72px] flex flex-wrap items-center justify-between gap-3">
           
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-amber-50 border border-amber-300 flex items-center justify-center text-amber-700 shadow-sm">
-              <Crown className="w-5 h-5" />
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-amber-50 border border-amber-300 flex items-center justify-center text-amber-700 shadow-sm shrink-0">
+              <Crown className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-empire text-lg font-black tracking-wide text-slate-900">
-                  AS <span className="gold-text">EMPIRE</span>
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <span className="font-empire text-sm sm:text-lg font-black tracking-wide text-slate-900 truncate max-w-[130px] xs:max-w-[180px] sm:max-w-none">
+                  {settings.storeName || 'SAAD TRADING COMPANY'}
                 </span>
-                <span className="px-2 py-0.5 rounded-md bg-amber-100 border border-amber-300 text-[10px] font-black uppercase text-amber-900">
-                  Owner Dashboard
+                <span className="px-1.5 sm:px-2 py-0.5 rounded-md bg-amber-100 border border-amber-300 text-[9px] sm:text-[10px] font-black uppercase text-amber-900 shrink-0">
+                  Owner
                 </span>
               </div>
-              <span className="text-[11px] text-slate-500">
-                Logged in: <strong className="text-slate-800">{currentUser?.email || 'Owner'}</strong>
+              <span className="text-[10px] sm:text-[11px] text-slate-500 truncate block max-w-[160px] sm:max-w-none">
+                {currentUser?.email || 'Owner'}
               </span>
             </div>
           </div>
 
-          <div className="flex items-center gap-2.5 sm:gap-3">
+          <div className="flex items-center gap-1.5 sm:gap-2.5">
+            <button
+              onClick={handleCopyOfficialStoreLink}
+              className="flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-[11px] sm:text-xs font-bold text-emerald-900 transition-all shadow-sm cursor-pointer"
+              title="Copy Official Website Link to share in Videos / WhatsApp / Social Media"
+            >
+              {shareLinkCopied ? <Check className="w-3.5 h-3.5 text-emerald-700" /> : <Copy className="w-3.5 h-3.5 text-emerald-700" />}
+              <span className="hidden xs:inline">{shareLinkCopied ? 'Link Copied!' : 'Copy Store Link'}</span>
+            </button>
+
+            <button
+              onClick={() => setEditSiteNameModalOpen(true)}
+              className="flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-300 text-[11px] sm:text-xs font-bold text-amber-900 transition-all shadow-sm cursor-pointer"
+              title="Edit Website Name & Stylish Branding"
+            >
+              <Edit3 className="w-3.5 h-3.5 text-amber-700" />
+              <span className="hidden xs:inline">Edit Name</span>
+            </button>
+
             <button
               onClick={onReturnToStore}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-xs font-semibold text-slate-700 transition-all"
+              className="flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-[11px] sm:text-xs font-semibold text-slate-700 transition-all cursor-pointer"
             >
-              <ExternalLink className="w-4 h-4 text-slate-600" />
-              <span className="hidden sm:inline">View Live Website</span>
+              <ExternalLink className="w-3.5 h-3.5 text-slate-600" />
+              <span className="hidden xs:inline">View Store</span>
             </button>
 
             <button
               onClick={() => logout()}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-red-50 hover:bg-red-100 border border-red-200 text-xs font-semibold text-red-700 transition-all"
+              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl bg-red-50 hover:bg-red-100 border border-red-200 text-[11px] sm:text-xs font-semibold text-red-700 transition-all cursor-pointer"
               title="Sign Out of Dashboard"
             >
-              <LogOut className="w-4 h-4" />
-              <span className="hidden sm:inline">Sign Out</span>
+              <LogOut className="w-3.5 h-3.5" />
+              <span className="hidden xs:inline">Exit</span>
             </button>
           </div>
         </div>
@@ -308,7 +449,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToStore 
             }`}
           >
             <UserPlus className="w-4 h-4" />
-            <span>Create New Business Account</span>
+            <span>Staff / Helper Accounts (Optional)</span>
           </button>
 
           <button
@@ -458,99 +599,175 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToStore 
                   </button>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs">
-                    <thead className="bg-slate-50 text-slate-500 font-bold border-b border-slate-200 uppercase tracking-wider text-[10px]">
-                      <tr>
-                        <th className="py-3 px-4">Item</th>
-                        <th className="py-3 px-4">Category</th>
-                        <th className="py-3 px-4">Price (PKR)</th>
-                        <th className="py-3 px-4">Stock</th>
-                        <th className="py-3 px-4">Status</th>
-                        <th className="py-3 px-4 text-right">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {filteredProducts.map((prod) => (
-                        <tr key={prod.id} className="hover:bg-slate-50/70 transition-colors">
-                          <td className="py-3 px-4">
-                            <div className="flex items-center gap-3">
-                              <div className="w-12 h-12 rounded-xl bg-slate-50 border border-slate-200 p-1 flex items-center justify-center shrink-0">
-                                {prod.images?.[0] ? (
-                                  <img src={prod.images[0]} alt="" className="w-full h-full object-contain" />
-                                ) : (
-                                  <Package className="w-5 h-5 text-slate-300" />
-                                )}
-                              </div>
-                              <div className="min-w-0">
-                                <span className="font-bold text-slate-900 block truncate max-w-xs sm:max-w-md">
-                                  {prod.name}
-                                </span>
-                                <span className="text-[10px] text-slate-400">
-                                  {prod.images?.length || 0} Photos {prod.featured && '• ⭐ Featured'}
-                                </span>
-                              </div>
-                            </div>
-                          </td>
-
-                          <td className="py-3 px-4 text-slate-700 font-medium">
-                            {prod.category}
-                          </td>
-
-                          <td className="py-3 px-4 font-bold text-slate-900">
-                            <div>{formatPKR(prod.discountPrice ?? prod.price)}</div>
-                            {prod.discountPrice && (
-                              <span className="text-[10px] text-slate-400 line-through">
-                                {formatPKR(prod.price)}
-                              </span>
+                <>
+                  {/* Mobile Product Cards (Zero horizontal scroll on phones) */}
+                  <div className="md:hidden divide-y divide-slate-100">
+                    {filteredProducts.map((prod) => (
+                      <div key={prod.id} className="p-4 space-y-3">
+                        <div className="flex items-start gap-3">
+                          <div className="w-14 h-14 rounded-xl bg-slate-50 border border-slate-200 p-1 flex items-center justify-center shrink-0">
+                            {prod.images?.[0] ? (
+                              <img src={prod.images[0]} alt="" className="w-full h-full object-contain" />
+                            ) : (
+                              <Package className="w-6 h-6 text-slate-300" />
                             )}
-                          </td>
-
-                          <td className="py-3 px-4 font-semibold text-slate-700">
-                            {prod.stock} units
-                          </td>
-
-                          <td className="py-3 px-4">
-                            <button
-                              onClick={() => handleToggleProductAvailability(prod)}
-                              className={`px-2.5 py-1 rounded-full text-[10px] font-bold border transition-all ${
-                                prod.isAvailable && prod.stock > 0
-                                  ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
-                                  : 'bg-red-50 border-red-200 text-red-800'
-                              }`}
-                              title="Click to toggle availability"
-                            >
-                              {prod.isAvailable && prod.stock > 0 ? '● Available' : '● Out of Stock'}
-                            </button>
-                          </td>
-
-                          <td className="py-3 px-4 text-right">
-                            <div className="inline-flex items-center gap-1.5">
-                              <button
-                                onClick={() => {
-                                  setSelectedProduct(prod);
-                                  setProductModalOpen(true);
-                                }}
-                                className="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors"
-                                title="Edit Product Info"
-                              >
-                                <Edit3 className="w-3.5 h-3.5" />
-                              </button>
-
-                              <button
-                                onClick={() => handleDeleteProduct(prod.id, prod.name)}
-                                className="p-2 rounded-lg bg-red-50 hover:bg-red-100 text-red-700 transition-colors"
-                                title="Delete Product"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700 block">
+                              {prod.category}
+                            </span>
+                            <h4 className="font-bold text-slate-900 text-xs sm:text-sm line-clamp-2">
+                              {prod.name}
+                            </h4>
+                            <div className="flex items-center gap-2 mt-1">
+                              <span className="font-black text-slate-900 text-xs">
+                                {formatPKR(prod.discountPrice ?? prod.price)}
+                              </span>
+                              {prod.discountPrice && (
+                                <span className="text-[10px] text-slate-400 line-through">
+                                  {formatPKR(prod.price)}
+                                </span>
+                              )}
+                              <span className="text-[10px] text-slate-500 font-semibold">
+                                • {prod.stock} in stock
+                              </span>
                             </div>
-                          </td>
+                          </div>
+                        </div>
+
+                        {/* Mobile Actions Row */}
+                        <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-100 text-xs">
+                          <button
+                            onClick={() => handleToggleProductAvailability(prod)}
+                            className={`px-2.5 py-1 rounded-full text-[10px] font-bold border transition-all ${
+                              prod.isAvailable && prod.stock > 0
+                                ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                                : 'bg-red-50 border-red-200 text-red-800'
+                            }`}
+                          >
+                            {prod.isAvailable && prod.stock > 0 ? '● Available' : '● Out of Stock'}
+                          </button>
+
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              onClick={() => {
+                                setSelectedProduct(prod);
+                                setProductModalOpen(true);
+                              }}
+                              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition-colors"
+                            >
+                              <Edit3 className="w-3.5 h-3.5" />
+                              <span>Edit</span>
+                            </button>
+
+                            <button
+                              onClick={() => handleDeleteProduct(prod.id, prod.name)}
+                              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-700 font-semibold text-xs transition-colors"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                              <span>Delete</span>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Tablet & Desktop Products Table */}
+                  <div className="hidden md:block overflow-x-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-slate-50 text-slate-500 font-bold border-b border-slate-200 uppercase tracking-wider text-[10px]">
+                        <tr>
+                          <th className="py-3 px-4">Item</th>
+                          <th className="py-3 px-4">Category</th>
+                          <th className="py-3 px-4">Price (PKR)</th>
+                          <th className="py-3 px-4">Stock</th>
+                          <th className="py-3 px-4">Status</th>
+                          <th className="py-3 px-4 text-right">Actions</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {filteredProducts.map((prod) => (
+                          <tr key={prod.id} className="hover:bg-slate-50/70 transition-colors">
+                            <td className="py-3 px-4">
+                              <div className="flex items-center gap-3">
+                                <div className="w-12 h-12 rounded-xl bg-slate-50 border border-slate-200 p-1 flex items-center justify-center shrink-0">
+                                  {prod.images?.[0] ? (
+                                    <img src={prod.images[0]} alt="" className="w-full h-full object-contain" />
+                                  ) : (
+                                    <Package className="w-5 h-5 text-slate-300" />
+                                  )}
+                                </div>
+                                <div className="min-w-0">
+                                  <span className="font-bold text-slate-900 block truncate max-w-xs sm:max-w-md">
+                                    {prod.name}
+                                  </span>
+                                  <span className="text-[10px] text-slate-400">
+                                    {prod.images?.length || 0} Photos {prod.featured && '• ⭐ Featured'}
+                                  </span>
+                                </div>
+                              </div>
+                            </td>
+
+                            <td className="py-3 px-4 text-slate-700 font-medium">
+                              {prod.category}
+                            </td>
+
+                            <td className="py-3 px-4 font-bold text-slate-900">
+                              <div>{formatPKR(prod.discountPrice ?? prod.price)}</div>
+                              {prod.discountPrice && (
+                                <span className="text-[10px] text-slate-400 line-through">
+                                  {formatPKR(prod.price)}
+                                </span>
+                              )}
+                            </td>
+
+                            <td className="py-3 px-4 font-semibold text-slate-700">
+                              {prod.stock} units
+                            </td>
+
+                            <td className="py-3 px-4">
+                              <button
+                                onClick={() => handleToggleProductAvailability(prod)}
+                                className={`px-2.5 py-1 rounded-full text-[10px] font-bold border transition-all ${
+                                  prod.isAvailable && prod.stock > 0
+                                    ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                                    : 'bg-red-50 border-red-200 text-red-800'
+                                }`}
+                                title="Click to toggle availability"
+                              >
+                                {prod.isAvailable && prod.stock > 0 ? '● Available' : '● Out of Stock'}
+                              </button>
+                            </td>
+
+                            <td className="py-3 px-4 text-right">
+                              <div className="inline-flex items-center gap-1.5">
+                                <button
+                                  onClick={() => {
+                                    setSelectedProduct(prod);
+                                    setProductModalOpen(true);
+                                  }}
+                                  className="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors"
+                                  title="Edit Product Info"
+                                >
+                                  <Edit3 className="w-3.5 h-3.5" />
+                                </button>
+
+                                <button
+                                  onClick={() => handleDeleteProduct(prod.id, prod.name)}
+                                  className="p-2 rounded-lg bg-red-50 hover:bg-red-100 text-red-700 transition-colors"
+                                  title="Delete Product"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
               )}
             </div>
 
@@ -674,7 +891,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToStore 
                       </div>
                     </div>
 
-                    {/* Order Actions: Print Receipt & WhatsApp */}
+                    {/* Order Actions: Print Receipt, WhatsApp, and Delete Order */}
                     <div className="pt-2 flex flex-wrap items-center justify-end gap-2.5">
                       <button
                         onClick={() => setReceiptOrder(order)}
@@ -691,6 +908,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToStore 
                       >
                         <MessageCircle className="w-4 h-4" />
                         <span>Chat on WhatsApp</span>
+                      </button>
+
+                      <button
+                        onClick={() => setOrderToDelete(order)}
+                        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs uppercase tracking-wider border border-rose-200 transition-all cursor-pointer shadow-sm hover:shadow"
+                        title="Delete unneeded order permanently"
+                      >
+                        <Trash2 className="w-4 h-4 text-rose-600" />
+                        <span>Delete Order</span>
                       </button>
                     </div>
                   </div>
@@ -738,64 +964,139 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToStore 
                   </p>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs">
-                    <thead className="bg-slate-50 text-slate-500 font-bold border-b border-slate-200 uppercase tracking-wider text-[10px]">
-                      <tr>
-                        <th className="py-3 px-4">Customer Name</th>
-                        <th className="py-3 px-4">Email</th>
-                        <th className="py-3 px-4">Mobile / WhatsApp</th>
-                        <th className="py-3 px-4">Registered Date</th>
-                        <th className="py-3 px-4">Total Orders</th>
-                        <th className="py-3 px-4 text-right">Contact</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {filteredCustomers.map((cust) => {
-                        const custOrders = orders.filter((o) => o.customerId === cust.uid || o.phone === cust.phone);
-                        let clean = (cust.phone || '').replace(/[^0-9]/g, '');
-                        if (clean.startsWith('03')) clean = '92' + clean.slice(1);
+                <>
+                  {/* Mobile Customer Cards (No sideways scroll on mobile phones) */}
+                  <div className="md:hidden divide-y divide-slate-100">
+                    {filteredCustomers.map((cust) => {
+                      const custOrders = orders.filter((o) => o.customerId === cust.uid || o.phone === cust.phone);
+                      let clean = (cust.phone || '').replace(/[^0-9]/g, '');
+                      if (clean.startsWith('03')) clean = '92' + clean.slice(1);
 
-                        return (
-                          <tr key={cust.uid} className="hover:bg-slate-50/70 transition-colors">
-                            <td className="py-3 px-4 font-bold text-slate-900">
-                              {cust.fullName}
-                            </td>
-                            <td className="py-3 px-4 text-slate-600 font-mono text-[11px]">
-                              {cust.email}
-                            </td>
-                            <td className="py-3 px-4 text-slate-700">
-                              {cust.phone || 'N/A'}
-                            </td>
-                            <td className="py-3 px-4 text-slate-500">
-                              {new Date(cust.createdAt).toLocaleDateString('en-PK', { day: 'numeric', month: 'short', year: 'numeric' })}
-                            </td>
-                            <td className="py-3 px-4">
-                              <span className="px-2 py-0.5 rounded-full bg-slate-100 font-bold text-slate-800 text-[11px]">
-                                {custOrders.length} {custOrders.length === 1 ? 'Order' : 'Orders'}
-                              </span>
-                            </td>
-                            <td className="py-3 px-4 text-right">
+                      return (
+                        <div key={cust.uid} className="p-4 space-y-2.5">
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <div className="font-bold text-slate-900 text-xs sm:text-sm">
+                                {cust.fullName}
+                              </div>
+                              <div className="text-slate-500 font-mono text-[11px] truncate max-w-[200px]">
+                                {cust.email}
+                              </div>
+                              <div className="text-slate-600 text-xs mt-0.5">
+                                Phone: <strong>{cust.phone || 'N/A'}</strong>
+                              </div>
+                            </div>
+                            <span className="px-2 py-0.5 rounded-full bg-slate-100 font-bold text-slate-800 text-[10px] shrink-0">
+                              {custOrders.length} {custOrders.length === 1 ? 'Order' : 'Orders'}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-100 text-xs">
+                            <span className="text-[10px] text-slate-400">
+                              Joined {new Date(cust.createdAt).toLocaleDateString('en-PK', { day: 'numeric', month: 'short', year: 'numeric' })}
+                            </span>
+
+                            <div className="flex items-center gap-1.5">
                               {cust.phone ? (
                                 <a
-                                  href={`https://wa.me/${clean}?text=${encodeURIComponent(`Assalam-o-Alaikum ${cust.fullName}! This is AS Empire owner.`)}`}
+                                  href={`https://wa.me/${clean}?text=${encodeURIComponent(`Assalam-o-Alaikum ${cust.fullName}! This is SAAD TRADING COMPANY owner.`)}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-semibold"
+                                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-semibold"
                                 >
                                   <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
                                   <span>WhatsApp</span>
                                 </a>
-                              ) : (
-                                <span className="text-slate-400 text-[10px]">No phone</span>
-                              )}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+                              ) : null}
+
+                              <button
+                                type="button"
+                                onClick={() => setCustomerToDelete(cust)}
+                                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-semibold transition-colors cursor-pointer"
+                                title="Delete Customer Account Manually"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                                <span>Delete</span>
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Tablet & Desktop Customers Table */}
+                  <div className="hidden md:block overflow-x-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-slate-50 text-slate-500 font-bold border-b border-slate-200 uppercase tracking-wider text-[10px]">
+                        <tr>
+                          <th className="py-3 px-4">Customer Name</th>
+                          <th className="py-3 px-4">Email</th>
+                          <th className="py-3 px-4">Mobile / WhatsApp</th>
+                          <th className="py-3 px-4">Registered Date</th>
+                          <th className="py-3 px-4">Total Orders</th>
+                          <th className="py-3 px-4 text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {filteredCustomers.map((cust) => {
+                          const custOrders = orders.filter((o) => o.customerId === cust.uid || o.phone === cust.phone);
+                          let clean = (cust.phone || '').replace(/[^0-9]/g, '');
+                          if (clean.startsWith('03')) clean = '92' + clean.slice(1);
+
+                          return (
+                            <tr key={cust.uid} className="hover:bg-slate-50/70 transition-colors">
+                              <td className="py-3 px-4 font-bold text-slate-900">
+                                {cust.fullName}
+                              </td>
+                              <td className="py-3 px-4 text-slate-600 font-mono text-[11px]">
+                                {cust.email}
+                              </td>
+                              <td className="py-3 px-4 text-slate-700">
+                                {cust.phone || 'N/A'}
+                              </td>
+                              <td className="py-3 px-4 text-slate-500">
+                                {new Date(cust.createdAt).toLocaleDateString('en-PK', { day: 'numeric', month: 'short', year: 'numeric' })}
+                              </td>
+                              <td className="py-3 px-4">
+                                <span className="px-2 py-0.5 rounded-full bg-slate-100 font-bold text-slate-800 text-[11px]">
+                                  {custOrders.length} {custOrders.length === 1 ? 'Order' : 'Orders'}
+                                </span>
+                              </td>
+                              <td className="py-3 px-4 text-right">
+                                <div className="flex items-center justify-end gap-2">
+                                  {cust.phone ? (
+                                    <a
+                                      href={`https://wa.me/${clean}?text=${encodeURIComponent(`Assalam-o-Alaikum ${cust.fullName}! This is SAAD TRADING COMPANY owner.`)}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-semibold"
+                                    >
+                                      <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
+                                      <span>WhatsApp</span>
+                                    </a>
+                                  ) : (
+                                    <span className="text-slate-400 text-[10px]">No phone</span>
+                                  )}
+
+                                  <button
+                                    type="button"
+                                    onClick={() => setCustomerToDelete(cust)}
+                                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-semibold transition-colors cursor-pointer"
+                                    title="Delete Customer Account Manually"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                    <span>Delete</span>
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
               )}
             </div>
           </div>
@@ -872,7 +1173,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToStore 
                     type="text"
                     value={settingsForm.storeName}
                     onChange={(e) => setSettingsForm({ ...settingsForm, storeName: e.target.value })}
-                    placeholder="AS Empire"
+                    placeholder="SAAD TRADING COMPANY"
                     className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:bg-white focus:outline-none focus:border-amber-600"
                   />
                 </div>
@@ -917,7 +1218,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToStore 
                   type="text"
                   value={settingsForm.announcement || ''}
                   onChange={(e) => setSettingsForm({ ...settingsForm, announcement: e.target.value })}
-                  placeholder="Welcome to AS Empire – Premium Mobile Displays & Phone Accessories."
+                  placeholder="Welcome to SAAD TRADING COMPANY – Premium Mobile Displays & Phone Accessories."
                   className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:bg-white focus:outline-none focus:border-amber-600"
                 />
               </div>
@@ -984,6 +1285,63 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToStore 
               </div>
             </div>
 
+            {/* Delivery Charges & Courier Options (Pakistan) */}
+            <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-4 text-xs">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-700">
+                  <Truck className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-slate-900 text-xs uppercase tracking-wider">
+                    Delivery Charges & Courier Options (Pakistan)
+                  </h4>
+                  <p className="text-slate-500">
+                    Control how shipping charges are calculated when customers book orders:
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                <div className="space-y-1">
+                  <label className="font-semibold text-slate-700 flex items-center justify-between">
+                    <span>Standard Courier Delivery Fee (PKR) *</span>
+                    <span className="text-[10px] text-amber-900 font-bold">Currently: Rs. {settingsForm.deliveryFee !== undefined ? settingsForm.deliveryFee : 250}</span>
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    step={50}
+                    value={settingsForm.deliveryFee !== undefined ? settingsForm.deliveryFee : 250}
+                    onChange={(e) => setSettingsForm({ ...settingsForm, deliveryFee: Math.max(0, parseInt(e.target.value) || 0) })}
+                    placeholder="250"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:bg-white focus:outline-none focus:border-amber-600 font-semibold"
+                  />
+                  <p className="text-[10px] text-slate-500">
+                    Courier shipping fee added to customer orders (e.g. Rs. 200 or Rs. 250). If you want to give 100% Free Shipping on all products, simply enter 0.
+                  </p>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-semibold text-slate-700 flex items-center justify-between">
+                    <span>Free Delivery Threshold (PKR)</span>
+                    <span className="text-[10px] text-emerald-800 font-bold">Currently: Rs. {settingsForm.freeDeliveryThreshold !== undefined ? settingsForm.freeDeliveryThreshold : 5000}</span>
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    step={500}
+                    value={settingsForm.freeDeliveryThreshold !== undefined ? settingsForm.freeDeliveryThreshold : 5000}
+                    onChange={(e) => setSettingsForm({ ...settingsForm, freeDeliveryThreshold: Math.max(0, parseInt(e.target.value) || 0) })}
+                    placeholder="5000"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:bg-white focus:outline-none focus:border-amber-600 font-semibold"
+                  />
+                  <p className="text-[10px] text-slate-500">
+                    Orders reaching this amount get Free Delivery automatically across Pakistan. Enter 0 if you don't want an automatic free delivery threshold.
+                  </p>
+                </div>
+              </div>
+            </div>
+
             {/* Payment Details for Customers */}
             <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-4 text-xs">
               <h4 className="font-bold text-slate-900 text-xs uppercase tracking-wider">
@@ -1043,16 +1401,31 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToStore 
           </form>
         )}
 
-        {/* TAB 5: CREATE NEW BUSINESS / OWNER ACCOUNT */}
+        {/* TAB 5: STAFF / HELPER ACCOUNTS (OPTIONAL) */}
         {activeTab === 'new-account' && (
           <div className="max-w-2xl space-y-6">
+            <div className="p-4 rounded-2xl bg-amber-50 border border-amber-300 text-amber-950 text-xs space-y-2 shadow-sm">
+              <div className="flex items-center gap-2 font-bold text-amber-900 text-sm">
+                <Crown className="w-4 h-4 text-amber-700" />
+                <span>Notice for Ahmad Saad (Master Owner)</span>
+              </div>
+              <p className="leading-relaxed">
+                <strong>You are already the Master Owner of SAAD TRADING COMPANY</strong> with email <strong>ahmadsaadnoor44550@gmail.com</strong> and WhatsApp <strong>03330916398</strong>.
+                You already have 100% full authority over products, orders, customers, and delivery rates.
+                <strong>You DO NOT need to create a new account to run your business!</strong>
+              </p>
+              <p className="text-[11px] text-amber-800">
+                This optional section is only if you ever want to add an extra sales assistant or staff helper account in the future.
+              </p>
+            </div>
+
             <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-2">
               <h3 className="font-empire text-lg font-bold text-slate-900 flex items-center gap-2">
                 <UserPlus className="w-5 h-5 text-amber-600" />
-                <span>Create New Owner Account for Your Business</span>
+                <span>Register Additional Staff or Helper Account (Optional)</span>
               </h3>
               <p className="text-xs text-slate-500">
-                As requested, you can manually create additional owner/admin accounts for yourself or new businesses directly from here.
+                Optional: Add helper accounts for shop assistants who need access to manage products and orders.
               </p>
             </div>
 
@@ -1135,17 +1508,85 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToStore 
           </div>
         )}
 
-        {/* TAB 6: DEPLOYMENT GUIDE */}
+        {/* TAB 6: DEPLOYMENT & SHARING GUIDE */}
         {activeTab === 'guide' && (
           <div className="max-w-4xl space-y-5 text-xs text-slate-700">
             <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-2">
               <h3 className="font-empire text-lg font-bold text-slate-900 flex items-center gap-2">
                 <Crown className="w-5 h-5 text-amber-600" />
-                <span>AS Empire – Deployment & Share Guide</span>
+                <span>{settings.storeName || 'SAAD TRADING COMPANY'} – Live Store Sharing Guide</span>
               </h3>
               <p className="text-slate-500">
-                Summary of your live system, database connection, and customer sharing instructions.
+                Official store link, video description attachment instructions, and customer order management.
               </p>
+            </div>
+
+            {/* Direct Official Link Box */}
+            <div className="p-6 rounded-2xl bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-transparent border border-amber-300 shadow-sm space-y-4">
+              <div>
+                <h4 className="font-bold text-slate-900 text-sm flex items-center gap-2">
+                  <ExternalLink className="w-4 h-4 text-amber-700" />
+                  <span>Your Live Official Store Links (For Videos & Customers)</span>
+                </h4>
+                <p className="text-slate-500 text-[11px] mt-0.5">
+                  Share these links in your video descriptions, TikTok/Instagram bio, and WhatsApp. Anyone clicking opens your store directly.
+                </p>
+              </div>
+
+              {/* Link 1: Official Shared Store Link */}
+              <div className="p-4 bg-white border border-slate-200 rounded-xl space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-bold text-slate-800 text-xs">
+                    Primary Store Link (Recommended for Videos & Bio)
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleCopyOfficialStoreLink}
+                    className="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+                  >
+                    {shareLinkCopied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                    <span>{shareLinkCopied ? 'Copied!' : 'Copy Link'}</span>
+                  </button>
+                </div>
+                <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-lg font-mono text-[11px] text-slate-800 break-all select-all flex items-center justify-between gap-2">
+                  <span>{OFFICIAL_STORE_SHARE_LINK}</span>
+                  <span className="text-[9px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 shrink-0">
+                    PUBLIC
+                  </span>
+                </div>
+              </div>
+
+              {/* Link 2: Direct Live Server Link */}
+              <div className="p-4 bg-white border border-slate-200 rounded-xl space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-bold text-slate-800 text-xs">
+                    Alternative Direct Server Link
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleCopyDevLink}
+                    className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-800 font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+                  >
+                    {devLinkCopied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                    <span>{devLinkCopied ? 'Copied!' : 'Copy Link'}</span>
+                  </button>
+                </div>
+                <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-lg font-mono text-[11px] text-slate-800 break-all select-all flex items-center justify-between gap-2">
+                  <span>{DIRECT_DEV_SHARE_LINK}</span>
+                  <span className="text-[9px] text-blue-700 font-bold bg-blue-50 px-2 py-0.5 rounded border border-blue-200 shrink-0">
+                    DIRECT
+                  </span>
+                </div>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-white border border-amber-200 text-[11px] text-slate-600 space-y-1.5">
+                <strong className="text-slate-900 block font-bold">How to paste into TikTok, YouTube, and WhatsApp:</strong>
+                <ul className="list-disc list-inside space-y-1 text-slate-600">
+                  <li><strong>TikTok & Instagram Bio:</strong> Add the Primary link to your profile so viewers tap and enter your shop directly.</li>
+                  <li><strong>YouTube Videos:</strong> Put this link in the description or pinned comment: <em>"Shop mobile displays & accessories online: {OFFICIAL_STORE_SHARE_LINK}"</em>.</li>
+                  <li><strong>WhatsApp Status & Groups:</strong> Share the link with customers and mobile repair shops across Pakistan so they can order immediately.</li>
+                </ul>
+              </div>
             </div>
 
             <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-2">
@@ -1191,6 +1632,243 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToStore 
         onClose={() => setReceiptOrder(null)}
         settings={settings}
       />
+
+      {/* Product Deletion In-App Confirmation Modal */}
+      {productToDelete && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
+          <div className="relative w-full max-w-md bg-white border border-slate-200 rounded-3xl p-6 text-center space-y-5 shadow-2xl">
+            <div className="w-14 h-14 mx-auto rounded-full bg-rose-50 border-2 border-rose-200 flex items-center justify-center text-rose-600">
+              <Trash2 className="w-7 h-7" />
+            </div>
+
+            <div className="space-y-1.5">
+              <h3 className="font-empire text-xl font-bold text-slate-900">
+                Delete Product Permanently?
+              </h3>
+              <p className="text-xs text-slate-600">
+                Are you sure you want to delete <strong className="text-slate-900">"{productToDelete.name}"</strong>? This product will be permanently removed from your catalog.
+              </p>
+            </div>
+
+            <div className="flex gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setProductToDelete(null)}
+                className="flex-1 py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isDeletingProduct}
+                onClick={confirmDeleteProduct}
+                className="flex-1 py-2.5 px-4 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs uppercase tracking-wider transition-colors shadow-sm cursor-pointer disabled:opacity-50"
+              >
+                {isDeletingProduct ? 'Deleting...' : 'Yes, Delete Product'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Customer Deletion In-App Confirmation Modal */}
+      {customerToDelete && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
+          <div className="relative w-full max-w-md bg-white border border-slate-200 rounded-3xl p-6 text-center space-y-5 shadow-2xl">
+            <div className="w-14 h-14 mx-auto rounded-full bg-rose-50 border-2 border-rose-200 flex items-center justify-center text-rose-600">
+              <Trash2 className="w-7 h-7" />
+            </div>
+
+            <div className="space-y-1.5">
+              <h3 className="font-empire text-xl font-bold text-slate-900">
+                Delete Customer Account?
+              </h3>
+              <p className="text-xs text-slate-600">
+                Are you sure you want to remove the customer account for <strong className="text-slate-900">{customerToDelete.fullName}</strong> (<span className="font-mono text-slate-700">{customerToDelete.email}</span>)?
+              </p>
+              <p className="text-[11px] text-amber-700 bg-amber-50 p-2.5 rounded-xl border border-amber-200 mt-2">
+                This will delete their registered account from your database. They can register again later if needed.
+              </p>
+            </div>
+
+            <div className="flex gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setCustomerToDelete(null)}
+                className="flex-1 py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isDeletingCustomer}
+                onClick={confirmDeleteCustomer}
+                className="flex-1 py-2.5 px-4 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs uppercase tracking-wider transition-colors shadow-sm cursor-pointer disabled:opacity-50"
+              >
+                {isDeletingCustomer ? 'Deleting...' : 'Yes, Delete Customer'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Order Deletion In-App Confirmation Modal */}
+      {orderToDelete && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
+          <div className="relative w-full max-w-md bg-white border border-slate-200 rounded-3xl p-6 text-center space-y-5 shadow-2xl">
+            <div className="w-14 h-14 mx-auto rounded-full bg-rose-50 border-2 border-rose-200 flex items-center justify-center text-rose-600">
+              <Trash2 className="w-7 h-7" />
+            </div>
+
+            <div className="space-y-1.5">
+              <h3 className="font-empire text-xl font-bold text-slate-900">
+                Delete Order Permanently?
+              </h3>
+              <p className="text-xs text-slate-600">
+                Are you sure you want to delete <strong className="text-slate-900">Order #{orderToDelete.id}</strong> from your records?
+              </p>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-left text-xs space-y-1.5">
+              <div className="flex justify-between items-center pb-1 border-b border-slate-200">
+                <span className="font-mono font-bold text-amber-800">#{orderToDelete.id}</span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-200 text-slate-800">
+                  {orderToDelete.status}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Customer:</span>
+                <span className="font-bold text-slate-900">{orderToDelete.customerName} ({orderToDelete.phone})</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Destination:</span>
+                <span className="text-slate-700">{orderToDelete.city}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Total Amount:</span>
+                <span className="font-bold text-slate-900">{formatPKR(orderToDelete.totalAmount)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Items:</span>
+                <span className="text-slate-700">{orderToDelete.items.length} product item(s)</span>
+              </div>
+            </div>
+
+            <p className="text-[11px] text-rose-700 bg-rose-50 p-2.5 rounded-xl border border-rose-200">
+              This unneeded order will be removed permanently from your Cloud Firestore database and dashboard statistics.
+            </p>
+
+            <div className="flex gap-2.5 pt-1">
+              <button
+                type="button"
+                onClick={() => setOrderToDelete(null)}
+                className="flex-1 py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition-colors cursor-pointer"
+              >
+                Keep Order
+              </button>
+              <button
+                type="button"
+                disabled={isDeletingOrder}
+                onClick={confirmDeleteOrder}
+                className="flex-1 py-2.5 px-4 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs uppercase tracking-wider transition-colors shadow-sm cursor-pointer disabled:opacity-50"
+              >
+                {isDeletingOrder ? 'Deleting...' : 'Yes, Delete Order'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Website Name & Stylish Branding Modal */}
+      {editSiteNameModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
+          <div className="relative w-full max-w-lg bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 space-y-6 shadow-2xl">
+            <button
+              onClick={() => setEditSiteNameModalOpen(false)}
+              className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-700 cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
+              <div className="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-300 flex items-center justify-center text-amber-700 shadow-sm shrink-0">
+                <Crown className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="font-empire text-xl font-bold text-slate-900">
+                  Edit Website Name & Branding
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Any name you write will automatically be styled in luxury serif typography!
+                </p>
+              </div>
+            </div>
+
+            {/* Live Stylish Font Preview */}
+            <div className="p-4 rounded-2xl bg-slate-900 text-white space-y-2 border border-slate-800 text-center shadow-inner">
+              <span className="text-[10px] uppercase font-bold tracking-widest text-amber-400/80 block">
+                ★ Live Stylish Typography Preview ★
+              </span>
+              <div className="font-empire text-2xl sm:text-3xl font-black tracking-wider gold-gradient-text py-1">
+                {siteNameInput.trim() || 'YOUR BRAND NAME'}
+              </div>
+              <p className="text-[11px] text-slate-400 uppercase tracking-widest">
+                {siteTaglineInput.trim() || 'Mobile Displays & Accessories'}
+              </p>
+            </div>
+
+            <form onSubmit={handleSaveSiteName} className="space-y-4 text-xs">
+              <div className="space-y-1.5">
+                <label className="font-bold text-slate-800 block">
+                  Website / Store Name *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={siteNameInput}
+                  onChange={(e) => setSiteNameInput(e.target.value)}
+                  placeholder="e.g. SAAD TRADING COMPANY, AHMAD MOBILES..."
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-semibold focus:bg-white focus:outline-none focus:border-amber-600 text-sm"
+                />
+                <p className="text-[10px] text-slate-500">
+                  This will change the logo, top banner, invoices, receipts, and browser title across the entire website.
+                </p>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="font-bold text-slate-800 block">
+                  Tagline / Business Subtitle
+                </label>
+                <input
+                  type="text"
+                  value={siteTaglineInput}
+                  onChange={(e) => setSiteTaglineInput(e.target.value)}
+                  placeholder="e.g. Mobile Displays & Accessories"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:bg-white focus:outline-none focus:border-amber-600"
+                />
+              </div>
+
+              <div className="flex gap-2.5 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setEditSiteNameModalOpen(false)}
+                  className="flex-1 py-3 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingSiteName || !siteNameInput.trim()}
+                  className="flex-1 py-3 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold uppercase tracking-wider transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  <Save className="w-4 h-4 text-amber-400" />
+                  <span>{savingSiteName ? 'Saving...' : 'Apply New Name Everywhere'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

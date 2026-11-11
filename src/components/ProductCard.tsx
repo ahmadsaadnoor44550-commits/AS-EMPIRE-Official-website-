@@ -43,15 +43,16 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenDetails
 
   const handleWhatsAppQuickOrder = (e: React.MouseEvent) => {
     e.stopPropagation();
+    const storeTitle = settings.storeName || 'SAAD TRADING COMPANY';
     const msg = 
-`📱 *AS EMPIRE – PRODUCT INQUIRY*
+`📱 *${storeTitle.toUpperCase()} – PRODUCT INQUIRY*
 ─────────────────────
 *Item:* ${product.name}
 *Category:* ${product.category}
 *Price:* Rs. ${currentPrice.toLocaleString('en-PK')} PKR
 *Availability:* ${inStock ? 'In Stock' : 'Check Availability'}
 ─────────────────────
-Assalam-o-Alaikum AS Empire! I am interested in purchasing this product. Please share delivery time and payment details.`;
+Assalam-o-Alaikum ${storeTitle}! I am interested in purchasing this product. Please share delivery time and payment details.`;
 
     window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`, '_blank');
   };
@@ -108,24 +109,24 @@ Assalam-o-Alaikum AS Empire! I am interested in purchasing this product. Please 
       </div>
 
       {/* Info Area */}
-      <div className="p-4 flex flex-col flex-1 justify-between gap-3">
+      <div className="p-3 sm:p-4 flex flex-col flex-1 justify-between gap-2 sm:gap-3">
         <div>
-          <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700 block mb-1">
+          <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-amber-700 block mb-0.5 sm:mb-1">
             {product.category}
           </span>
-          <h3 className="font-semibold text-sm text-slate-900 line-clamp-2 group-hover:text-amber-800 transition-colors">
+          <h3 className="font-semibold text-xs sm:text-sm text-slate-900 line-clamp-2 group-hover:text-amber-800 transition-colors leading-snug">
             {product.name}
           </h3>
         </div>
 
         {/* Pricing & Actions */}
-        <div className="space-y-3 pt-2 border-t border-slate-100">
-          <div className="flex items-baseline gap-2">
-            <span className="text-base font-extrabold text-slate-900">
+        <div className="space-y-2.5 sm:space-y-3 pt-2 border-t border-slate-100">
+          <div className="flex items-baseline gap-1.5 sm:gap-2">
+            <span className="text-sm sm:text-base font-extrabold text-slate-900">
               {formatPKR(currentPrice)}
             </span>
             {product.discountPrice && (
-              <span className="text-xs text-slate-400 line-through">
+              <span className="text-[10px] sm:text-xs text-slate-400 line-through">
                 {formatPKR(product.price)}
               </span>
             )}
@@ -135,7 +136,7 @@ Assalam-o-Alaikum AS Empire! I am interested in purchasing this product. Please 
             <button
               onClick={handleDirectBuy}
               disabled={!inStock}
-              className={`w-full py-2 px-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm ${
+              className={`w-full py-2 px-2.5 rounded-xl text-[11px] sm:text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm ${
                 !inStock
                   ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
                   : 'bg-slate-900 hover:bg-slate-800 text-white hover:shadow'
@@ -145,11 +146,11 @@ Assalam-o-Alaikum AS Empire! I am interested in purchasing this product. Please 
               <span>{inStock ? 'Buy Now' : 'Out of Stock'}</span>
             </button>
 
-            <div className="grid grid-cols-2 gap-1.5">
+            <div className="grid grid-cols-2 gap-1 sm:gap-1.5">
               <button
                 onClick={handleAddToCart}
                 disabled={!inStock}
-                className={`py-1.5 px-2 rounded-xl text-[11px] font-bold transition-all flex items-center justify-center gap-1 cursor-pointer ${
+                className={`py-1.5 px-1 sm:px-2 rounded-xl text-[10px] sm:text-[11px] font-bold transition-all flex items-center justify-center gap-1 cursor-pointer ${
                   !inStock
                     ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
                     : addedAnimation
@@ -172,7 +173,7 @@ Assalam-o-Alaikum AS Empire! I am interested in purchasing this product. Please 
 
               <button
                 onClick={handleWhatsAppQuickOrder}
-                className="py-1.5 px-2 rounded-xl text-[11px] font-bold bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 transition-all flex items-center justify-center gap-1 cursor-pointer"
+                className="py-1.5 px-1 sm:px-2 rounded-xl text-[10px] sm:text-[11px] font-bold bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 transition-all flex items-center justify-center gap-1 cursor-pointer"
               >
                 <MessageCircle className="w-3 h-3 text-emerald-600" />
                 <span>WhatsApp</span>

@@ -47,8 +47,11 @@ interface StoreContextType {
     address: string;
     city: string;
     notes?: string;
+    deliveryMethod?: 'courier' | 'pickup';
   }) => Promise<{ orderId: string; whatsappUrl: string; message: string }>;
   updateOrderStatus: (orderId: string, status: OrderStatus) => Promise<void>;
+  cancelOrder: (orderId: string) => Promise<void>;
+  deleteOrder: (orderId: string) => Promise<void>;
   getOrderById: (orderId: string) => Promise<Order | null>;
 
   // Admin Product Actions
@@ -64,8 +67,9 @@ interface StoreContextType {
 
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
 
-const CART_STORAGE_KEY = 'as_empire_cart_clean_v2';
-const WISHLIST_STORAGE_KEY = 'as_empire_wishlist_clean_v2';
+const CART_STORAGE_KEY = 'SAAD_TRADING_COMPANY_cart_clean_v2';
+const WISHLIST_STORAGE_KEY = 'saad_trading_company_wishlist_clean_v2';
+const SETTINGS_STORAGE_KEY = 'saad_trading_company_settings_cache_v2';
 
 export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isOwner, currentUser } = useAuth();
@@ -73,7 +77,24 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [customerOrders, setCustomerOrders] = useState<Order[]>([]);
-  const [settings, setSettings] = useState<StoreSettings>(DEFAULT_STORE_SETTINGS);
+  
+  // Initialize with cached settings if available (ensuring no old AS Empire name ever flashes)
+  const [settings, setSettings] = useState<StoreSettings>(() => {
+    try {
+      const cached = localStorage.getItem(SETTINGS_STORAGE_KEY);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        let sName = parsed.storeName || 'SAAD TRADING COMPANY';
+        if (sName.toUpperCase().includes('AS EMPIRE')) {
+          sName = 'SAAD TRADING COMPANY';
+        }
+        return { ...DEFAULT_STORE_SETTINGS, ...parsed, storeName: sName };
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    return DEFAULT_STORE_SETTINGS;
+  });
 
   const [cart, setCart] = useState<CartItem[]>(() => {
     try {
@@ -122,9 +143,30 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       settingsDocRef,
       (docSnap) => {
         if (docSnap.exists()) {
-          setSettings({ ...DEFAULT_STORE_SETTINGS, ...docSnap.data() } as StoreSettings);
+          const remote = docSnap.data() as Partial<StoreSettings>;
+          let activeName = remote.storeName || 'SAAD TRADING COMPANY';
+          // Filter out the old pre-edit name if it was stored in Firestore previously
+          if (activeName.toUpperCase().includes('AS EMPIRE')) {
+            activeName = 'SAAD TRADING COMPANY';
+          }
+          const merged: StoreSettings = {
+            ...DEFAULT_STORE_SETTINGS,
+            ...remote,
+            storeName: activeName,
+          };
+          setSettings(merged);
+          try {
+            localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(merged));
+          } catch (e) {
+            console.error(e);
+          }
         } else {
           setSettings(DEFAULT_STORE_SETTINGS);
+          try {
+            localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(DEFAULT_STORE_SETTINGS));
+          } catch (e) {
+            console.error(e);
+          }
         }
         setLoadingSettings(false);
       },
@@ -288,6 +330,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     address: string;
     city: string;
     notes?: string;
+    deliveryMethod?: 'courier' | 'pickup';
   }) => {
     if (cart.length === 0) {
       throw new Error('Your shopping cart is empty.');
@@ -305,6 +348,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       category: item.product.category || 'Mobile Spare'
     }));
 
+    const isPickup = orderData.deliveryMethod === 'pickup';
+    const computedDeliveryFee = isPickup ? 0 : deliveryFee;
+    const computedGrandTotal = cartSubtotal + computedDeliveryFee;
+
     const finalOrder: Order = {
       id: orderId,
       ...(currentUser?.uid ? { customerId: currentUser.uid } : {}),
@@ -314,8 +361,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       city: orderData.city.trim(),
       items: orderItems,
       subtotal: cartSubtotal,
-      deliveryCharges: deliveryFee,
-      totalAmount: cartFinalTotal,
+      deliveryCharges: computedDeliveryFee,
+      deliveryMethod: orderData.deliveryMethod || 'courier',
+      totalAmount: computedGrandTotal,
       status: 'Pending Confirmation',
       notes: orderData.notes?.trim() || '',
       createdAt: new Date().toISOString(),
@@ -351,7 +399,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       .join('\n');
 
     const whatsappMessage = 
-`📱 *NEW ORDER – AS EMPIRE*
+`📱 *NEW ORDER – SAAD TRADING COMPANY*
 *Order Tracking ID:* #${orderId}
 ─────────────────────
 *Customer Information:*
@@ -371,7 +419,7 @@ ${itemsFormatted}
 *Payment Status:*
 • Direct payment discussion via EasyPaisa / JazzCash / Bank Transfer
 
-_Assalam-o-Alaikum AS Empire! I have placed this order on your website. Please confirm availability and share payment details._`;
+_Assalam-o-Alaikum SAAD TRADING COMPANY! I have placed this order on your website. Please confirm availability and share payment details._`;
 
     // Clean phone number for WhatsApp link
     let cleanPhone = (settings.whatsappNumber || '03330916398').replace(/[^0-9]/g, '');
@@ -394,8 +442,28 @@ _Assalam-o-Alaikum AS Empire! I have placed this order on your website. Please c
         status,
         updatedAt: new Date().toISOString()
       });
+      // Reflect in local state immediately
+      setOrders((prev) => prev.map((o) => o.id === orderId ? { ...o, status, updatedAt: new Date().toISOString() } : o));
+      setCustomerOrders((prev) => prev.map((o) => o.id === orderId ? { ...o, status, updatedAt: new Date().toISOString() } : o));
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `orders/${orderId}`);
+    }
+  };
+
+  const cancelOrder = async (orderId: string) => {
+    await updateOrderStatus(orderId, 'Cancelled');
+  };
+
+  const deleteOrder = async (orderId: string) => {
+    try {
+      const orderRef = doc(db, 'orders', orderId);
+      await deleteDoc(orderRef);
+      // Remove from local order lists immediately
+      setOrders((prev) => prev.filter((o) => o.id !== orderId));
+      setCustomerOrders((prev) => prev.filter((o) => o.id !== orderId));
+    } catch (error) {
+      console.error('Error deleting order:', error);
+      handleFirestoreError(error, OperationType.DELETE, `orders/${orderId}`);
     }
   };
 
@@ -455,11 +523,18 @@ _Assalam-o-Alaikum AS Empire! I have placed this order on your website. Please c
   const updateSettings = async (newSettings: Partial<StoreSettings>) => {
     try {
       const settingsRef = doc(db, 'settings', 'website');
-      await setDoc(settingsRef, {
+      const updated = {
         ...settings,
         ...newSettings,
         updatedAt: new Date().toISOString()
-      }, { merge: true });
+      };
+      setSettings(updated);
+      try {
+        localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(updated));
+      } catch (e) {
+        console.error(e);
+      }
+      await setDoc(settingsRef, updated, { merge: true });
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, 'settings/website');
     }
@@ -501,6 +576,8 @@ _Assalam-o-Alaikum AS Empire! I have placed this order on your website. Please c
         isInWishlist,
         createOrder,
         updateOrderStatus,
+        cancelOrder,
+        deleteOrder,
         getOrderById,
         addProduct,
         updateProduct,

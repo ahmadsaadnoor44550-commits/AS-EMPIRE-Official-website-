@@ -57,7 +57,12 @@ service cloud.firestore {
 
       allow get: if isValidId(orderId);
       allow list: if isAdmin() || (isSignedIn() && resource.data.customerId == request.auth.uid);
-      allow update, delete: if isAdmin();
+      allow update: if isAdmin() || (
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt']) &&
+        request.resource.data.status == 'Cancelled' &&
+        (resource.data.status == 'Pending Confirmation' || resource.data.status == 'Confirmed')
+      );
+      allow delete: if isAdmin();
     }
 
     // Store settings (Public read, Owner write)

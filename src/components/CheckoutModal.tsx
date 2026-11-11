@@ -11,7 +11,9 @@ import {
   ShieldCheck, 
   AlertCircle,
   CheckCircle2,
-  Zap 
+  Zap,
+  Truck,
+  Store
 } from 'lucide-react';
 
 interface CheckoutModalProps {
@@ -25,7 +27,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   onClose,
   onSuccess,
 }) => {
-  const { cart, cartFinalTotal, createOrder } = useStore();
+  const { cart, cartSubtotal, deliveryFee, settings, createOrder } = useStore();
   const { userProfile, currentUser } = useAuth();
 
   const [customerName, setCustomerName] = useState('');
@@ -34,6 +36,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const [city, setCity] = useState('Lahore');
   const [customCity, setCustomCity] = useState('');
   const [notes, setNotes] = useState('');
+  const [deliveryMethod, setDeliveryMethod] = useState<'courier' | 'pickup'>('courier');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -47,6 +50,9 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
   if (!isOpen) return null;
 
+  const appliedDeliveryFee = deliveryMethod === 'pickup' ? 0 : deliveryFee;
+  const grandTotal = cartSubtotal + appliedDeliveryFee;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
@@ -59,7 +65,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       setErrorMessage('Please enter a valid Pakistani mobile number (e.g. 0300-1234567).');
       return;
     }
-    if (!address.trim() || address.trim().length < 6) {
+    if (deliveryMethod === 'courier' && (!address.trim() || address.trim().length < 6)) {
       setErrorMessage('Please enter a complete delivery address (Shop / House #, Street, Area).');
       return;
     }
@@ -70,14 +76,19 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       return;
     }
 
+    const finalAddress = deliveryMethod === 'pickup'
+      ? `[Store Pickup] ${settings.businessAddress || 'Shop Collection, Pakistan'}`
+      : address.trim();
+
     setIsSubmitting(true);
     try {
       const { orderId, whatsappUrl } = await createOrder({
         customerName,
         phone,
-        address,
+        address: finalAddress,
         city: finalCity,
         notes,
+        deliveryMethod,
       });
 
       // Hand off directly to the success confirmation dialog
@@ -96,7 +107,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 animate-fadeIn">
       <div className="fixed inset-0" onClick={onClose} />
 
-      <div className="relative w-full max-w-2xl bg-white border border-slate-200 rounded-3xl shadow-2xl overflow-hidden z-10 my-8">
+      <div className="relative w-full max-w-2xl bg-white border border-slate-200 rounded-3xl shadow-2xl overflow-y-auto max-h-[92vh] z-10 my-4 sm:my-8">
         
         {/* Header */}
         <div className="p-6 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
@@ -106,7 +117,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             </div>
             <div>
               <h3 className="font-empire text-lg font-bold text-slate-900">
-                AS Empire Checkout
+                SAAD TRADING COMPANY Checkout
               </h3>
               <p className="text-xs text-slate-500">
                 Direct WhatsApp Order & Verification (Pakistan)
@@ -125,19 +136,89 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-6 sm:p-8 space-y-6 text-xs">
           
-          {/* Summary Box */}
-          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <span className="text-slate-500 block">Total Items:</span>
-              <strong className="text-slate-900 text-sm">
-                {cart.reduce((s, i) => s + i.quantity, 0)} Items ({cart.length} Products)
+          {/* Summary Box with transparent price breakdown */}
+          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+            <div className="flex justify-between items-center text-slate-600">
+              <span>Items Subtotal ({cart.reduce((s, i) => s + i.quantity, 0)} items):</span>
+              <strong className="text-slate-900">{formatPKR(cartSubtotal)}</strong>
+            </div>
+
+            <div className="flex justify-between items-center text-slate-600">
+              <span className="flex items-center gap-1.5">
+                <Truck className="w-3.5 h-3.5 text-amber-600" />
+                <span>Delivery ({deliveryMethod === 'pickup' ? 'Shop Pickup' : 'Courier COD'}):</span>
+              </span>
+              <strong className={appliedDeliveryFee === 0 ? 'text-emerald-700 font-bold' : 'text-slate-900'}>
+                {appliedDeliveryFee === 0 ? 'FREE' : formatPKR(appliedDeliveryFee)}
               </strong>
             </div>
-            <div className="text-right">
-              <span className="text-slate-500 block">Total in PKR:</span>
+
+            <div className="border-t border-slate-200 pt-2 flex justify-between items-center">
+              <div>
+                <span className="text-slate-500 block text-[10px] uppercase font-bold tracking-wider">Total Payable:</span>
+                <span className="text-slate-400 text-[10px]">Cash on Delivery (COD) / EasyPaisa / JazzCash</span>
+              </div>
               <strong className="text-slate-900 text-lg font-black">
-                {formatPKR(cartFinalTotal)}
+                {formatPKR(grandTotal)}
               </strong>
+            </div>
+          </div>
+
+          {/* Delivery Method Selection */}
+          <div className="space-y-2">
+            <label className="font-bold text-slate-900 uppercase tracking-wider text-xs block">
+              Choose Delivery Option
+            </label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <div
+                onClick={() => setDeliveryMethod('courier')}
+                className={`p-3.5 rounded-xl border cursor-pointer transition-all flex items-start gap-3 ${
+                  deliveryMethod === 'courier'
+                    ? 'bg-amber-50/50 border-amber-600 ring-1 ring-amber-600/30'
+                    : 'bg-white border-slate-200 hover:border-slate-300'
+                }`}
+              >
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                  deliveryMethod === 'courier' ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-500'
+                }`}>
+                  <Truck className="w-4 h-4" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-1">
+                    <strong className="text-slate-900 text-xs">Courier Delivery (COD)</strong>
+                    <span className="text-[11px] font-bold text-amber-900">
+                      {deliveryFee === 0 ? 'FREE' : formatPKR(deliveryFee)}
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-slate-500 mt-0.5">
+                    Express courier to your home or shop in Pakistan. Cash paid upon arrival.
+                  </p>
+                </div>
+              </div>
+
+              <div
+                onClick={() => setDeliveryMethod('pickup')}
+                className={`p-3.5 rounded-xl border cursor-pointer transition-all flex items-start gap-3 ${
+                  deliveryMethod === 'pickup'
+                    ? 'bg-amber-50/50 border-amber-600 ring-1 ring-amber-600/30'
+                    : 'bg-white border-slate-200 hover:border-slate-300'
+                }`}
+              >
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                  deliveryMethod === 'pickup' ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-500'
+                }`}>
+                  <Store className="w-4 h-4" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-1">
+                    <strong className="text-slate-900 text-xs">Self Store Pickup</strong>
+                    <span className="text-[11px] font-bold text-emerald-700">FREE</span>
+                  </div>
+                  <p className="text-[10px] text-slate-500 mt-0.5">
+                    Pick up in person from {settings.storeName || 'SAAD TRADING COMPANY'} shop. Rs. 0 delivery.
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -246,7 +327,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
               <span>Direct Order Confirmation (Pakistan)</span>
             </div>
             <p className="text-[11px] leading-relaxed text-slate-600">
-              When you click below, your order is <strong>directly booked & saved in the AS Empire store database</strong>. You can immediately view your official receipt and confirm delivery via WhatsApp. Payment is made via <strong>Cash on Delivery (COD) or EasyPaisa / JazzCash / Bank Transfer</strong>.
+              When you click below, your order is <strong>directly booked & saved in the SAAD TRADING COMPANY store database</strong>. You can immediately view your official receipt and confirm delivery via WhatsApp. Payment is made via <strong>Cash on Delivery (COD) or EasyPaisa / JazzCash / Bank Transfer</strong>.
             </p>
           </div>
 

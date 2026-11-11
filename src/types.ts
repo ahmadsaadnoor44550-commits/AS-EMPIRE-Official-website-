@@ -35,6 +35,7 @@ export interface Order {
   items: OrderItem[];
   subtotal: number;
   deliveryCharges: number;
+  deliveryMethod?: 'courier' | 'pickup';
   totalAmount: number;
   status: OrderStatus;
   notes?: string;

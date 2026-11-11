@@ -9,7 +9,7 @@ import {
   signOut as firebaseSignOut,
   updateProfile
 } from 'firebase/auth';
-import { doc, getDoc, setDoc, collection, getDocs } from 'firebase/firestore';
+import { doc, getDoc, setDoc, collection, getDocs, deleteDoc } from 'firebase/firestore';
 import { auth, db, handleFirestoreError, OperationType } from '../firebase';
 import { UserProfile } from '../types';
 
@@ -25,6 +25,7 @@ interface AuthContextType {
   registerCustomer: (data: { fullName: string; email: string; phone: string; pass: string }) => Promise<void>;
   registerOwner: (data: { fullName: string; email: string; phone: string; pass: string }) => Promise<void>;
   createAdditionalOwnerAccount: (data: { fullName: string; email: string; phone: string; pass: string }) => Promise<void>;
+  deleteCustomer: (uid: string) => Promise<void>;
   logout: () => Promise<void>;
   clearError: () => void;
   allCustomers: UserProfile[];
@@ -272,6 +273,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const deleteCustomer = async (uid: string) => {
+    setError(null);
+    try {
+      await deleteDoc(doc(db, 'users', uid));
+      setAllCustomers((prev) => prev.filter((c) => c.uid !== uid));
+    } catch (err: unknown) {
+      console.error('Error deleting customer:', err);
+      handleFirestoreError(err, OperationType.DELETE, `users/${uid}`);
+    }
+  };
+
   const logout = async () => {
     setError(null);
     await firebaseSignOut(auth);
@@ -295,6 +307,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         registerCustomer,
         registerOwner,
         createAdditionalOwnerAccount,
+        deleteCustomer,
         logout,
         clearError,
         allCustomers,

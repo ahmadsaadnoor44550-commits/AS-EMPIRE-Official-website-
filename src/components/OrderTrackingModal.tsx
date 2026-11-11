@@ -23,12 +23,14 @@ export const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({
   onClose,
   initialOrderId = '',
 }) => {
-  const { getOrderById, settings } = useStore();
+  const { getOrderById, settings, cancelOrder } = useStore();
   const [orderIdInput, setOrderIdInput] = useState(initialOrderId);
   const [searchedOrder, setSearchedOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showReceipt, setShowReceipt] = useState(false);
+  const [confirmCancel, setConfirmCancel] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
 
   useEffect(() => {
     if (initialOrderId) {
@@ -77,7 +79,7 @@ export const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({
             </div>
             <div>
               <h3 className="font-empire text-lg font-bold text-slate-900">
-                Track Your AS Empire Order
+                Track Your {settings.storeName || 'SAAD TRADING COMPANY'} Order
               </h3>
               <p className="text-xs text-slate-500">
                 Check delivery status of your mobile screen or accessories order
@@ -174,7 +176,7 @@ export const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({
               </button>
 
               <a
-                href={`https://wa.me/${cleanPhone}?text=${encodeURIComponent(`Assalam-o-Alaikum AS Empire! I am inquiring about my Order #${searchedOrder.id}.`)}`}
+                href={`https://wa.me/${cleanPhone}?text=${encodeURIComponent(`Assalam-o-Alaikum ${settings.storeName || 'SAAD TRADING COMPANY'}! I am inquiring about my Order #${searchedOrder.id}.`)}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex-1 py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-sm transition-all"
@@ -183,6 +185,47 @@ export const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({
                 <span>WhatsApp Owner</span>
               </a>
             </div>
+
+            {/* Customer Cancellation Option */}
+            {(searchedOrder.status === 'Pending Confirmation' || searchedOrder.status === 'Confirmed') && (
+              <div className="pt-2 border-t border-slate-200">
+                {confirmCancel ? (
+                  <div className="p-3 rounded-xl bg-red-50 border border-red-200 space-y-2 text-center">
+                    <p className="text-xs font-semibold text-red-800">
+                      Did you place this order mistakenly? Are you sure you want to cancel?
+                    </p>
+                    <div className="flex justify-center gap-2">
+                      <button
+                        onClick={async () => {
+                          setCancelling(true);
+                          await cancelOrder(searchedOrder.id);
+                          setSearchedOrder({ ...searchedOrder, status: 'Cancelled' });
+                          setCancelling(false);
+                          setConfirmCancel(false);
+                        }}
+                        disabled={cancelling}
+                        className="px-4 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-sm cursor-pointer disabled:opacity-50"
+                      >
+                        {cancelling ? 'Cancelling...' : 'Yes, Cancel Order'}
+                      </button>
+                      <button
+                        onClick={() => setConfirmCancel(false)}
+                        className="px-3 py-1.5 rounded-lg bg-white border border-slate-300 text-slate-700 font-semibold text-xs hover:bg-slate-50 cursor-pointer"
+                      >
+                        Keep Order
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setConfirmCancel(true)}
+                    className="w-full py-2 px-3 rounded-xl border border-red-200 bg-red-50 hover:bg-red-100 text-red-700 font-bold text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <span>Placed by mistake? Cancel this order</span>
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         )}
 

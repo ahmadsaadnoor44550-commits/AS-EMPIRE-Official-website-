@@ -41,7 +41,7 @@ export const INITIAL_BUSINESS_CATEGORIES = [
 ];
 
 export const DEFAULT_STORE_SETTINGS: StoreSettings = {
-  storeName: 'AS Empire',
+  storeName: 'SAAD TRADING COMPANY',
   ownerName: 'Ahmad Saad',
   tagline: 'Premium Mobile LCDs, LEDs, OLED Screens & Accessories',
   whatsappNumber: '03330916398', // Owner real WhatsApp number
@@ -50,8 +50,8 @@ export const DEFAULT_STORE_SETTINGS: StoreSettings = {
   businessAddress: '',
   logoUrl: '',
   bannerUrl: '',
-  announcement: 'Welcome to AS Empire – Premium Mobile Displays & Phone Accessories. Contact us on WhatsApp for verified orders.',
-  aboutText: 'AS Empire is your trusted source for premium Mobile LCDs, Mobile LEDs, OLED Screens, and mobile accessories in Pakistan. Every product is individually inspected for guaranteed display quality.',
+  announcement: 'Welcome to SAAD TRADING COMPANY – Premium Mobile Displays & Phone Accessories. Contact us on WhatsApp for verified orders.',
+  aboutText: 'SAAD TRADING COMPANY is your trusted source for premium Mobile LCDs, Mobile LEDs, OLED Screens, and mobile accessories in Pakistan. Every product is individually inspected for guaranteed display quality.',
   ownerIntro: '',
   deliveryFee: 250,
   freeDeliveryThreshold: 5000,

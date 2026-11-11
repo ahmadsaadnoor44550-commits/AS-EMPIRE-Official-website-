@@ -75,12 +75,12 @@ export const Header: React.FC<HeaderProps> = ({
             <div className="w-10 h-10 rounded-xl bg-amber-50 border border-amber-300 flex items-center justify-center text-amber-700 shadow-sm">
               <Crown className="w-5 h-5" />
             </div>
-            <div className="flex flex-col">
-              <span className="font-empire text-xl sm:text-2xl font-black tracking-wide text-slate-900">
-                AS <span className="gold-text font-black">EMPIRE</span>
+            <div className="flex flex-col min-w-0">
+              <span className="font-empire text-base xs:text-lg sm:text-2xl font-black tracking-wide text-slate-900 truncate max-w-[130px] xs:max-w-[190px] sm:max-w-none">
+                {settings.storeName || 'SAAD TRADING COMPANY'}
               </span>
-              <span className="text-[9px] uppercase tracking-[0.2em] text-slate-500 font-semibold">
-                Mobile Displays & Accessories
+              <span className="text-[9px] uppercase tracking-[0.2em] text-slate-500 font-semibold truncate max-w-[130px] sm:max-w-[200px] hidden xs:block">
+                {settings.tagline || 'Mobile Displays & Accessories'}
               </span>
             </div>
           </div>
@@ -108,11 +108,11 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
 
           {/* Customer Action Icons */}
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-1.5 sm:gap-2.5">
             
             {/* WhatsApp Contact */}
             <a
-              href={`https://wa.me/${cleanPhone}?text=${encodeURIComponent('Assalam-o-Alaikum AS Empire! I am inquiring about product availability.')}`}
+              href={`https://wa.me/${cleanPhone}?text=${encodeURIComponent(`Assalam-o-Alaikum ${settings.storeName || 'SAAD TRADING COMPANY'}! I am inquiring about product availability.`)}`}
               target="_blank"
               rel="noopener noreferrer"
               className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 hover:bg-emerald-100 text-xs font-semibold transition-all"
@@ -121,21 +121,22 @@ export const Header: React.FC<HeaderProps> = ({
               <span className="hidden xl:inline">WhatsApp</span>
             </a>
 
-            {/* Track Order */}
+            {/* Track Order (Desktop / Tablet) */}
             <button
               onClick={onOpenTracking}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 hover:text-slate-900 text-xs font-medium transition-all"
+              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 hover:text-slate-900 text-xs font-medium transition-all"
               title="Track Order Status"
             >
               <PackageSearch className="w-4 h-4 text-slate-500" />
-              <span className="hidden sm:inline">Track</span>
+              <span className="hidden md:inline">Track</span>
             </button>
 
             {/* Customer Account Button (Sign In or My Account) */}
             {currentUser && !isOwner ? (
               <button
                 onClick={onOpenCustomerAccount}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 hover:bg-amber-100 text-xs font-semibold transition-all"
+                className="flex items-center gap-1.5 p-2 sm:px-3 sm:py-1.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 hover:bg-amber-100 text-xs font-semibold transition-all"
+                title="Customer Account"
               >
                 <User className="w-4 h-4 text-amber-700" />
                 <span className="hidden sm:inline truncate max-w-[100px]">{userProfile?.fullName || 'My Account'}</span>
@@ -143,7 +144,8 @@ export const Header: React.FC<HeaderProps> = ({
             ) : !isOwner ? (
               <button
                 onClick={() => onOpenCustomerAuth('login')}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-all"
+                className="flex items-center gap-1.5 p-2 sm:px-3 sm:py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-all"
+                title="Sign In"
               >
                 <User className="w-4 h-4 text-slate-600" />
                 <span className="hidden sm:inline">Sign In</span>

@@ -13,7 +13,7 @@ export const AnnouncementBar: React.FC = () => {
         <div className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
           <span className="font-medium text-slate-800">
-            {settings.announcement || 'Welcome to AS Empire – Mobile LCDs, LEDs, OLED Screens & Accessories.'}
+            {settings.announcement || 'Welcome to SAAD TRADING COMPANY – Mobile LCDs, LEDs, OLED Screens & Accessories.'}
           </span>
         </div>
 

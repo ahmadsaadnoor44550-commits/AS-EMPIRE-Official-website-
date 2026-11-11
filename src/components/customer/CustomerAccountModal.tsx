@@ -31,8 +31,10 @@ export const CustomerAccountModal: React.FC<CustomerAccountModalProps> = ({
   onTrackOrder,
 }) => {
   const { userProfile, currentUser, logout } = useAuth();
-  const { customerOrders, settings } = useStore();
+  const { customerOrders, settings, cancelOrder } = useStore();
   const [selectedReceiptOrder, setSelectedReceiptOrder] = useState<Order | null>(null);
+  const [confirmCancelId, setConfirmCancelId] = useState<string | null>(null);
+  const [cancelling, setCancelling] = useState(false);
 
   if (!isOpen || !currentUser) return null;
 
@@ -129,16 +131,16 @@ export const CustomerAccountModal: React.FC<CustomerAccountModalProps> = ({
                     ))}
                   </div>
 
-                  <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
+                  <div className="pt-2 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs">
                     <span className="font-bold text-slate-900">Total: {formatPKR(order.totalAmount)}</span>
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-wrap items-center gap-2.5">
                       <button
                         onClick={() => setSelectedReceiptOrder(order)}
                         className="inline-flex items-center gap-1 font-bold text-[11px] text-slate-800 hover:text-amber-700 cursor-pointer"
                         title="Print or save PDF receipt"
                       >
                         <Printer className="w-3.5 h-3.5 text-amber-600" />
-                        <span>Receipt (PDF)</span>
+                        <span>Receipt</span>
                       </button>
 
                       <button
@@ -150,6 +152,40 @@ export const CustomerAccountModal: React.FC<CustomerAccountModalProps> = ({
                       >
                         Track
                       </button>
+
+                      {(order.status === 'Pending Confirmation' || order.status === 'Confirmed') && (
+                        confirmCancelId === order.id ? (
+                          <div className="flex items-center gap-1 bg-red-50 p-1 rounded-lg border border-red-200">
+                            <span className="text-[10px] text-red-700 font-medium">Cancel?</span>
+                            <button
+                              onClick={async () => {
+                                setCancelling(true);
+                                await cancelOrder(order.id);
+                                setCancelling(false);
+                                setConfirmCancelId(null);
+                              }}
+                              disabled={cancelling}
+                              className="px-2 py-0.5 rounded bg-red-600 text-white font-bold text-[10px] hover:bg-red-700 cursor-pointer disabled:opacity-50"
+                            >
+                              {cancelling ? '...' : 'Yes'}
+                            </button>
+                            <button
+                              onClick={() => setConfirmCancelId(null)}
+                              className="px-1.5 py-0.5 rounded text-slate-500 text-[10px] hover:text-slate-700 cursor-pointer"
+                            >
+                              No
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => setConfirmCancelId(order.id)}
+                            className="px-2 py-0.5 rounded-lg border border-red-200 bg-red-50 hover:bg-red-100 text-red-700 font-bold text-[10px] cursor-pointer"
+                            title="Cancel mistaken order"
+                          >
+                            Cancel Order
+                          </button>
+                        )
+                      )}
                     </div>
                   </div>
                 </div>

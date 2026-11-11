@@ -11,7 +11,12 @@ import {
   Truck, 
   ShieldCheck, 
   ChevronRight,
-  Smartphone 
+  ChevronLeft,
+  Smartphone,
+  Maximize2,
+  ZoomIn,
+  ZoomOut,
+  RotateCcw
 } from 'lucide-react';
 
 interface ProductDetailsModalProps {
@@ -29,6 +34,8 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [addedSuccess, setAddedSuccess] = useState(false);
+  const [isZoomOpen, setIsZoomOpen] = useState(false);
+  const [zoomLevel, setZoomLevel] = useState(1);
 
   if (!product) return null;
 
@@ -57,8 +64,9 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
 
   const handleWhatsAppOrder = () => {
     const totalItemPrice = currentPrice * quantity;
+    const storeTitle = settings.storeName || 'SAAD TRADING COMPANY';
     const msg = 
-`📱 *AS EMPIRE – ORDER INQUIRY*
+`📱 *${storeTitle.toUpperCase()} – ORDER INQUIRY*
 ─────────────────────
 *Item:* ${product.name}
 *Category:* ${product.category}
@@ -66,7 +74,7 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
 *Price Per Unit:* Rs. ${currentPrice.toLocaleString('en-PK')} PKR
 *Total Amount:* Rs. ${totalItemPrice.toLocaleString('en-PK')} PKR
 ─────────────────────
-Assalam-o-Alaikum AS Empire! I want to order this product. Please share delivery timeframe and payment details (EasyPaisa / JazzCash / Bank Transfer).`;
+Assalam-o-Alaikum ${storeTitle}! I want to order this product. Please share delivery timeframe and payment details (EasyPaisa / JazzCash / Bank Transfer).`;
 
     window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`, '_blank');
   };
@@ -75,7 +83,7 @@ Assalam-o-Alaikum AS Empire! I want to order this product. Please share delivery
     <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 animate-fadeIn">
       <div className="fixed inset-0" onClick={onClose} />
 
-      <div className="relative w-full max-w-4xl bg-white border border-slate-200 rounded-3xl shadow-2xl overflow-hidden z-10 my-8">
+      <div className="relative w-full max-w-4xl bg-white border border-slate-200 rounded-3xl shadow-2xl overflow-y-auto max-h-[92vh] z-10 my-4 sm:my-8">
         
         {/* Close Button */}
         <button
@@ -87,14 +95,28 @@ Assalam-o-Alaikum AS Empire! I want to order this product. Please share delivery
 
         <div className="grid grid-cols-1 md:grid-cols-2">
           {/* Left: Product Images */}
-          <div className="p-6 bg-slate-50 flex flex-col gap-4 border-b md:border-b-0 md:border-r border-slate-200">
-            <div className="relative aspect-square w-full rounded-2xl bg-white border border-slate-200 p-4 flex items-center justify-center overflow-hidden">
+          <div className="p-4 sm:p-6 bg-slate-50 flex flex-col gap-3 sm:gap-4 border-b md:border-b-0 md:border-r border-slate-200">
+            <div 
+              onClick={() => {
+                if (images.length > 0) {
+                  setZoomLevel(1);
+                  setIsZoomOpen(true);
+                }
+              }}
+              className="relative aspect-square w-full rounded-2xl bg-white border border-slate-200 p-4 flex items-center justify-center overflow-hidden cursor-zoom-in group select-none"
+            >
               {images.length > 0 ? (
-                <img
-                  src={images[selectedImageIndex] || images[0]}
-                  alt={product.name}
-                  className="w-full h-full object-contain"
-                />
+                <>
+                  <img
+                    src={images[selectedImageIndex] || images[0]}
+                    alt={product.name}
+                    className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-200"
+                  />
+                  <div className="absolute bottom-3 left-3 px-2.5 py-1 rounded-full bg-slate-900/85 text-white text-[10px] font-semibold flex items-center gap-1.5 backdrop-blur-sm pointer-events-none shadow-md">
+                    <Maximize2 className="w-3 h-3 text-amber-400" />
+                    <span>Tap photo to zoom (Mobile)</span>
+                  </div>
+                </>
               ) : (
                 <div className="text-slate-300 flex flex-col items-center gap-2">
                   <Smartphone className="w-12 h-12" />
@@ -103,8 +125,12 @@ Assalam-o-Alaikum AS Empire! I want to order this product. Please share delivery
               )}
 
               <button
-                onClick={() => toggleWishlist(product.id)}
-                className={`absolute top-4 right-4 p-2.5 rounded-full transition-all ${
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleWishlist(product.id);
+                }}
+                className={`absolute top-4 right-4 p-2.5 rounded-full transition-all z-10 ${
                   isFavorited ? 'bg-rose-50 text-rose-600' : 'bg-slate-100 text-slate-400 hover:text-slate-700'
                 }`}
               >
@@ -143,7 +169,7 @@ Assalam-o-Alaikum AS Empire! I want to order this product. Please share delivery
           </div>
 
           {/* Right: Info & Actions */}
-          <div className="p-6 sm:p-8 flex flex-col justify-between space-y-6">
+          <div className="p-4 sm:p-8 flex flex-col justify-between space-y-4 sm:space-y-6">
             <div className="space-y-4">
               
               {/* Category & Stock */}
@@ -302,6 +328,100 @@ Assalam-o-Alaikum AS Empire! I want to order this product. Please share delivery
           </div>
         </div>
       </div>
+
+      {/* Fullscreen Mobile Photo Zoom Lightbox Modal */}
+      {isZoomOpen && images.length > 0 && (
+        <div className="fixed inset-0 z-[70] bg-black/95 flex flex-col justify-between p-3 sm:p-6 animate-fadeIn">
+          {/* Top Bar */}
+          <div className="flex items-center justify-between text-white pb-3 border-b border-white/10 z-10">
+            <div>
+              <h4 className="text-sm font-bold truncate max-w-[220px] sm:max-w-md">{product.name}</h4>
+              <p className="text-[11px] text-amber-400">
+                Photo {selectedImageIndex + 1} of {images.length} • Zoom: {Math.round(zoomLevel * 100)}%
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setZoomLevel((prev) => Math.min(prev + 0.5, 3))}
+                className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white"
+                title="Zoom In"
+              >
+                <ZoomIn className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setZoomLevel((prev) => Math.max(prev - 0.5, 1))}
+                className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white"
+                title="Zoom Out"
+              >
+                <ZoomOut className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setZoomLevel(1)}
+                className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white"
+                title="Reset"
+              >
+                <RotateCcw className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setIsZoomOpen(false)}
+                className="p-2 rounded-xl bg-white/20 hover:bg-white/30 text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+
+          {/* Zoomable Image Center Area */}
+          <div className="flex-1 relative flex items-center justify-center overflow-auto p-2">
+            {images.length > 1 && (
+              <button
+                onClick={() => setSelectedImageIndex((prev) => (prev > 0 ? prev - 1 : images.length - 1))}
+                className="absolute left-2 top-1/2 -translate-y-1/2 p-3 rounded-full bg-black/60 text-white hover:bg-black/90 z-10 border border-white/20"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+            )}
+
+            <div className="w-full h-full flex items-center justify-center overflow-auto">
+              <img
+                src={images[selectedImageIndex] || images[0]}
+                alt={product.name}
+                style={{ transform: `scale(${zoomLevel})` }}
+                className="max-h-[75vh] max-w-[90vw] object-contain transition-transform duration-200 cursor-zoom-in"
+                onClick={() => setZoomLevel((prev) => (prev < 2 ? prev + 0.5 : 1))}
+              />
+            </div>
+
+            {images.length > 1 && (
+              <button
+                onClick={() => setSelectedImageIndex((prev) => (prev < images.length - 1 ? prev + 1 : 0))}
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-3 rounded-full bg-black/60 text-white hover:bg-black/90 z-10 border border-white/20"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
+            )}
+          </div>
+
+          {/* Bottom Thumbnails Strip */}
+          <div className="pt-3 border-t border-white/10 flex items-center justify-center gap-2 overflow-x-auto">
+            {images.map((img, idx) => (
+              <button
+                key={idx}
+                onClick={() => {
+                  setSelectedImageIndex(idx);
+                  setZoomLevel(1);
+                }}
+                className={`w-14 h-14 rounded-xl overflow-hidden border-2 p-1 bg-white shrink-0 transition-all ${
+                  selectedImageIndex === idx ? 'border-amber-400 scale-105' : 'border-white/30 opacity-60'
+                }`}
+              >
+                <img src={img} alt="" className="w-full h-full object-contain" />
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

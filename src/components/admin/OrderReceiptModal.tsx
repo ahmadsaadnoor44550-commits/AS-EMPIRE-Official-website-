@@ -45,13 +45,12 @@ export const OrderReceiptModal: React.FC<OrderReceiptModalProps> = ({
   const businessPhone = settings.whatsappNumber || settings.contactPhone || '03330916398';
   const businessEmail = settings.contactEmail || 'ahmadsaadnoor44550@gmail.com';
   const businessAddress = settings.businessAddress || 'Shop #, Mobile Market, Pakistan';
-  const storeName = settings.storeName || 'AS EMPIRE';
+  const storeName = settings.storeName || 'SAAD TRADING COMPANY';
   const ownerName = settings.ownerName || 'Ahmad Saad';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-900/70 backdrop-blur-sm overflow-y-auto print:p-0 print:bg-white print:static">
-      {/* Container modal */}
-      <div className="relative w-full max-w-3xl bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden my-4 print:my-0 print:border-none print:shadow-none print:max-w-none print:rounded-none">
+      <div className="relative w-full max-w-3xl bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-y-auto max-h-[92vh] my-4 print:my-0 print:border-none print:shadow-none print:max-w-none print:rounded-none">
         
         {/* Action Header (Hidden in Print) */}
         <div className="no-print flex items-center justify-between px-6 py-4 bg-slate-900 text-white border-b border-slate-800">
@@ -347,7 +346,7 @@ export const OrderReceiptModal: React.FC<OrderReceiptModalProps> = ({
 
           {/* Print Footer note */}
           <div className="text-center text-[10px] text-slate-400 pt-2 border-t border-slate-100">
-            Thank you for doing business with AS Empire. Generated on {new Date().toLocaleDateString('en-PK')}.
+            Thank you for doing business with {storeName}. Generated on {new Date().toLocaleDateString('en-PK')}.
           </div>
         </div>
 
