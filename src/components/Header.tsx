@@ -131,8 +131,18 @@ export const Header: React.FC<HeaderProps> = ({
               <span className="hidden md:inline">Track</span>
             </button>
 
-            {/* Customer Account Button (Sign In or My Account) */}
-            {currentUser && !isOwner ? (
+            {/* Account / Dashboard Button */}
+            {isOwner ? (
+              <button
+                onClick={onOpenOwnerPortal}
+                className="flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold transition-all shadow-sm cursor-pointer shrink-0"
+                title="Open Owner Dashboard to Add & Edit Products"
+              >
+                <Crown className="w-3.5 h-3.5 text-amber-200" />
+                <span className="hidden xs:inline">Owner Dashboard</span>
+                <span className="xs:hidden">Owner</span>
+              </button>
+            ) : currentUser ? (
               <button
                 onClick={onOpenCustomerAccount}
                 className="flex items-center gap-1.5 p-2 sm:px-3 sm:py-1.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 hover:bg-amber-100 text-xs font-semibold transition-all"
@@ -141,7 +151,7 @@ export const Header: React.FC<HeaderProps> = ({
                 <User className="w-4 h-4 text-amber-700" />
                 <span className="hidden sm:inline truncate max-w-[100px]">{userProfile?.fullName || 'My Account'}</span>
               </button>
-            ) : !isOwner ? (
+            ) : (
               <button
                 onClick={() => onOpenCustomerAuth('login')}
                 className="flex items-center gap-1.5 p-2 sm:px-3 sm:py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-all"
@@ -150,7 +160,7 @@ export const Header: React.FC<HeaderProps> = ({
                 <User className="w-4 h-4 text-slate-600" />
                 <span className="hidden sm:inline">Sign In</span>
               </button>
-            ) : null}
+            )}
 
             {/* Wishlist */}
             <button
@@ -326,18 +336,21 @@ export const Header: React.FC<HeaderProps> = ({
               <span>Track Order</span>
             </button>
 
-            {isOwner && (
-              <button
-                onClick={() => {
-                  onOpenOwnerPortal();
-                  setMobileMenuOpen(false);
-                }}
-                className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-white bg-amber-600"
-              >
-                <Shield className="w-4 h-4" />
-                <span>Owner Dashboard</span>
-              </button>
-            )}
+            <button
+              onClick={() => {
+                onOpenOwnerPortal();
+                setMobileMenuOpen(false);
+              }}
+              className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold text-amber-950 bg-amber-50 border border-amber-200 hover:bg-amber-100 transition-all cursor-pointer"
+            >
+              <div className="flex items-center gap-2">
+                <Crown className="w-4 h-4 text-amber-700" />
+                <span>{isOwner ? 'Owner Dashboard (Manage Products)' : 'Owner Sign In / Admin Portal'}</span>
+              </div>
+              <span className="text-[10px] text-amber-800 bg-amber-200/60 px-2 py-0.5 rounded font-mono font-bold">
+                Admin
+              </span>
+            </button>
           </div>
         </div>
       )}

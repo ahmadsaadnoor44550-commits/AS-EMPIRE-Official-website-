@@ -149,16 +149,19 @@ export const Footer: React.FC<FooterProps> = ({
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
           <span>
             © {new Date().getFullYear()} {settings.storeName || 'SAAD TRADING COMPANY'}. All Rights Reserved.
-            {/* Discreet secret trigger for owner on the dot */}
-            <span 
-              onClick={onOpenOwnerPortal} 
-              className="cursor-default select-none text-slate-400 hover:text-slate-600 ml-1"
-              title=""
-            >
-              •
-            </span>
           </span>
-          <span>Prices in Pakistani Rupees (PKR)</span>
+          <div className="flex items-center gap-3">
+            <span>Prices in Pakistani Rupees (PKR)</span>
+            <span className="text-slate-300">•</span>
+            <button 
+              onClick={onOpenOwnerPortal}
+              className="text-slate-500 hover:text-amber-800 text-[11px] font-semibold flex items-center gap-1 transition-colors cursor-pointer"
+              title="Access Owner Dashboard to add & edit products"
+            >
+              <Crown className="w-3 h-3 text-amber-600" />
+              <span>Owner Portal</span>
+            </button>
+          </div>
         </div>
       </div>
     </footer>

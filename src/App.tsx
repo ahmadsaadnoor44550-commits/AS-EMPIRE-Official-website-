@@ -56,13 +56,18 @@ function StorefrontApp() {
   const [successOrderId, setSuccessOrderId] = useState<string | null>(null);
   const [successWhatsappUrl, setSuccessWhatsappUrl] = useState<string | null>(null);
 
-  // Owner Secret URL Routing: When owner opens website with #admin or ?admin=true
+  // Owner Secret URL Routing: When owner opens website with /admin, #admin, #/admin, or ?admin=true
   useEffect(() => {
     const checkAdminRoute = () => {
-      const isHashAdmin = window.location.hash.toLowerCase() === '#admin';
-      const isQueryAdmin = window.location.search.toLowerCase().includes('admin=true');
+      const path = window.location.pathname.toLowerCase();
+      const hash = window.location.hash.toLowerCase();
+      const search = window.location.search.toLowerCase();
 
-      if (isHashAdmin || isQueryAdmin) {
+      const isPathAdmin = path === '/admin' || path.startsWith('/admin/');
+      const isHashAdmin = hash === '#admin' || hash === '#/admin';
+      const isQueryAdmin = search.includes('admin=true') || search.includes('admin=1');
+
+      if (isPathAdmin || isHashAdmin || isQueryAdmin) {
         if (isOwner) {
           setViewMode('admin');
         } else {
@@ -73,6 +78,7 @@ function StorefrontApp() {
 
     checkAdminRoute();
     window.addEventListener('hashchange', checkAdminRoute);
+    window.addEventListener('popstate', checkAdminRoute);
 
     // Optional keyboard shortcut: Ctrl+Shift+A or Cmd+Shift+A
     const handleKeyDown = (e: KeyboardEvent) => {
