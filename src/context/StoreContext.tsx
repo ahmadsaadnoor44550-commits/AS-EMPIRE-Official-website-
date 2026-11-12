@@ -279,8 +279,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             const oldStatus = previousStatusesRef.current[ord.id];
             if (oldStatus && oldStatus !== ord.status) {
               let msg = `Your order #${ord.id} status changed to ${ord.status}`;
-              if (ord.status === 'Confirmed') {
-                msg = `Your order #${ord.id} has been confirmed by SAAD TRADING COMPANY.`;
+              if (ord.status === 'Awaiting Payment') {
+                msg = `Your order #${ord.id} is awaiting advance payment. Please share your payment screenshot on WhatsApp.`;
+              } else if (ord.status === 'Confirmed') {
+                msg = `Advance payment verified! Your order #${ord.id} has been confirmed by SAAD TRADING COMPANY.`;
               } else if (ord.status === 'Shipped') {
                 msg = `Your order #${ord.id} has been shipped! It is on the way.`;
               } else if (ord.status === 'Delivered') {
@@ -359,9 +361,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const cartTotalCount = cart.reduce((count, item) => count + item.quantity, 0);
 
-  const deliveryFee = cartSubtotal >= (settings.freeDeliveryThreshold || 5000) || cartSubtotal === 0 
-    ? 0 
-    : (settings.deliveryFee || 250);
+  const deliveryFee = settings.deliveryFee || 250;
 
   const cartFinalTotal = cartSubtotal + deliveryFee;
 
@@ -416,7 +416,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       deliveryCharges: computedDeliveryFee,
       deliveryMethod: orderData.deliveryMethod || 'courier',
       totalAmount: computedGrandTotal,
-      status: 'Pending',
+      paymentType: 'Advance Payment',
+      status: 'Awaiting Payment',
       statusUpdatedAt: new Date().toISOString(),
       notes: orderData.notes?.trim() || '',
       createdAt: new Date().toISOString(),
@@ -466,13 +467,14 @@ ${itemsFormatted}
 ─────────────────────
 *Total Amount (PKR):*
 • Subtotal: Rs. ${finalOrder.subtotal.toLocaleString('en-PK')}
-• Delivery Charges: ${finalOrder.deliveryCharges === 0 ? 'FREE' : `Rs. ${finalOrder.deliveryCharges.toLocaleString('en-PK')}`}
+• Delivery Charges: ${finalOrder.deliveryCharges > 0 ? `Rs. ${finalOrder.deliveryCharges.toLocaleString('en-PK')}` : 'Store Pickup / Confirmed on WhatsApp'}
 • *GRAND TOTAL: Rs. ${finalOrder.totalAmount.toLocaleString('en-PK')} PKR*
 ─────────────────────
-*Payment Status:*
-• Direct payment discussion via EasyPaisa / JazzCash / Bank Transfer
-
-_Assalam-o-Alaikum SAAD TRADING COMPANY! I have placed this order on your website. Please confirm availability and share payment details._`;
+*Payment Type:*
+• *Advance Payment Only* (EasyPaisa / JazzCash / Bank Transfer)
+• *Status:* Awaiting Advance Payment
+─────────────────────
+_Assalam-o-Alaikum SAAD TRADING COMPANY! I have placed this order on your website. I am sending the advance payment screenshot here on WhatsApp to confirm my order._`;
 
     // Clean phone number for WhatsApp link
     let cleanPhone = (settings.whatsappNumber || '03330916398').replace(/[^0-9]/g, '');

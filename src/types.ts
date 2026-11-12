@@ -23,7 +23,7 @@ export interface OrderItem {
   category?: string;
 }
 
-export type OrderStatus = 'Pending' | 'Pending Confirmation' | 'Confirmed' | 'Shipped' | 'Delivered' | 'Cancelled';
+export type OrderStatus = 'Awaiting Payment' | 'Pending' | 'Pending Confirmation' | 'Confirmed' | 'Shipped' | 'Delivered' | 'Cancelled';
 
 export interface Order {
   id: string; // e.g. ASE-2026-9821
@@ -38,6 +38,7 @@ export interface Order {
   deliveryCharges: number;
   deliveryMethod?: 'courier' | 'pickup';
   totalAmount: number;
+  paymentType?: string; // 'Advance Payment'
   status: OrderStatus;
   statusUpdatedAt?: string;
   notes?: string;

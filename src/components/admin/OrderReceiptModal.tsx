@@ -171,7 +171,7 @@ export const OrderReceiptModal: React.FC<OrderReceiptModalProps> = ({
                 Payment Type
               </span>
               <span className="font-bold text-slate-900">
-                COD / Direct WhatsApp
+                Advance Payment
               </span>
             </div>
           </div>

@@ -20,7 +20,7 @@ export const AnnouncementBar: React.FC = () => {
         <div className="flex items-center gap-4 text-[11px] text-slate-500">
           <span className="hidden md:inline-flex items-center gap-1.5 text-slate-600">
             <ShieldCheck className="w-3.5 h-3.5 text-amber-600" />
-            EasyPaisa • JazzCash • Bank Transfer
+            Advance Payment Only: EasyPaisa • JazzCash • Bank Transfer
           </span>
           <a
             href={`https://wa.me/${cleanPhone.startsWith('03') ? '92' + cleanPhone.slice(1) : cleanPhone}`}

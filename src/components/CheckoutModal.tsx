@@ -151,17 +151,17 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             <div className="flex justify-between items-center text-slate-600">
               <span className="flex items-center gap-1.5">
                 <Truck className="w-3.5 h-3.5 text-amber-600" />
-                <span>Delivery ({deliveryMethod === 'pickup' ? 'Shop Pickup' : 'Courier COD'}):</span>
+                <span>Delivery ({deliveryMethod === 'pickup' ? 'Shop Pickup' : 'Courier Service'}):</span>
               </span>
-              <strong className={appliedDeliveryFee === 0 ? 'text-emerald-700 font-bold' : 'text-slate-900'}>
-                {appliedDeliveryFee === 0 ? 'FREE' : formatPKR(appliedDeliveryFee)}
+              <strong className={appliedDeliveryFee === 0 ? 'text-slate-700 font-bold' : 'text-slate-900'}>
+                {appliedDeliveryFee === 0 ? 'Rs. 0 (Self Pickup)' : formatPKR(appliedDeliveryFee)}
               </strong>
             </div>
 
             <div className="border-t border-slate-200 pt-2 flex justify-between items-center">
               <div>
                 <span className="text-slate-500 block text-[10px] uppercase font-bold tracking-wider">Total Payable:</span>
-                <span className="text-slate-400 text-[10px]">Cash on Delivery (COD) / EasyPaisa / JazzCash</span>
+                <span className="text-amber-800 text-[10px] font-bold">Advance Payment Only (EasyPaisa • JazzCash • Bank Transfer)</span>
               </div>
               <strong className="text-slate-900 text-lg font-black">
                 {formatPKR(grandTotal)}
@@ -190,13 +190,13 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between gap-1">
-                    <strong className="text-slate-900 text-xs">Courier Delivery (COD)</strong>
+                    <strong className="text-slate-900 text-xs">Courier Delivery</strong>
                     <span className="text-[11px] font-bold text-amber-900">
-                      {deliveryFee === 0 ? 'FREE' : formatPKR(deliveryFee)}
+                      {formatPKR(deliveryFee)}
                     </span>
                   </div>
                   <p className="text-[10px] text-slate-500 mt-0.5">
-                    Express courier to your home or shop in Pakistan. Cash paid upon arrival.
+                    Express courier delivery all over Pakistan. Advance payment required.
                   </p>
                 </div>
               </div>
@@ -217,10 +217,10 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between gap-1">
                     <strong className="text-slate-900 text-xs">Self Store Pickup</strong>
-                    <span className="text-[11px] font-bold text-emerald-700">FREE</span>
+                    <span className="text-[11px] font-bold text-slate-700">Rs. 0</span>
                   </div>
                   <p className="text-[10px] text-slate-500 mt-0.5">
-                    Pick up in person from {settings.storeName || 'SAAD TRADING COMPANY'} shop. Rs. 0 delivery.
+                    Pick up in person from {settings.storeName || 'SAAD TRADING COMPANY'} shop. Advance payment required.
                   </p>
                 </div>
               </div>
@@ -325,14 +325,43 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             </div>
           </div>
 
-          {/* Direct Buy Confirmation Notice */}
-          <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 space-y-1.5 text-slate-700">
+          {/* Payment Type: Advance Payment Only */}
+          <div className="p-4 rounded-2xl bg-amber-50/80 border border-amber-200 space-y-3 text-slate-800">
+            <div className="flex items-center justify-between">
+              <span className="font-bold text-xs uppercase tracking-wider text-amber-900">
+                Payment Type: Advance Payment Only
+              </span>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
+                No Cash on Delivery
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-600 leading-relaxed">
+              We accept advance payment only. Please transfer the order amount via <strong>EasyPaisa, JazzCash, or Bank Transfer</strong> and share your payment screenshot on WhatsApp to confirm your order.
+            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] pt-1">
+              <div className="p-2.5 rounded-xl bg-white border border-amber-200 space-y-0.5">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">EasyPaisa & JazzCash Account</span>
+                <span className="font-bold text-slate-900 block font-mono text-xs">{settings.easyPaisaAccount || settings.whatsappNumber || '0333-0916398'}</span>
+                <span className="text-[10px] text-slate-500 block">Account Title: <strong>{settings.ownerName || 'Ahmad Saad'}</strong></span>
+              </div>
+
+              <div className="p-2.5 rounded-xl bg-white border border-amber-200 space-y-0.5">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">WhatsApp for Screenshot</span>
+                <span className="font-bold text-slate-900 block font-mono text-xs">{settings.whatsappNumber || '0333-0916398'}</span>
+                <span className="text-[10px] text-slate-500 block">Order confirmed after screenshot received</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Advance Payment Confirmation Notice */}
+          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-1.5 text-slate-700">
             <div className="flex items-center gap-2 font-bold text-slate-900">
               <ShieldCheck className="w-4 h-4 text-emerald-600" />
-              <span>Direct Order Confirmation (Pakistan)</span>
+              <span>Order Confirmation via Advance Payment</span>
             </div>
             <p className="text-[11px] leading-relaxed text-slate-600">
-              When you click below, your order is <strong>directly booked & saved in the SAAD TRADING COMPANY store database</strong>. You can immediately view your official receipt and confirm delivery via WhatsApp. Payment is made via <strong>Cash on Delivery (COD) or EasyPaisa / JazzCash / Bank Transfer</strong>.
+              When you click below, your order will be booked as <strong>Awaiting Payment</strong> in the SAAD TRADING COMPANY store database. Your order will be officially confirmed as soon as the advance payment is received and verified by the owner. Please send the payment screenshot directly on WhatsApp.
             </p>
           </div>
 
@@ -340,14 +369,14 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
           <button
             type="submit"
             disabled={isSubmitting || cart.length === 0}
-            className="w-full py-3.5 px-6 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs uppercase tracking-wider transition-all shadow-md flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer hover:shadow-lg"
+            className="w-full py-3.5 px-6 rounded-2xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs uppercase tracking-wider transition-all shadow-md flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer hover:shadow-lg"
           >
             {isSubmitting ? (
-              <span>Placing & Confirming Order...</span>
+              <span>Placing Order...</span>
             ) : (
               <>
-                <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-                <span>Confirm & Place Order (Direct Buy)</span>
+                <CheckCircle2 className="w-5 h-5 text-white" />
+                <span>Place Order & Submit Advance Payment</span>
               </>
             )}
           </button>
