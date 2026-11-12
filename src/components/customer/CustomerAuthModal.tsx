@@ -7,6 +7,8 @@ import {
   Mail, 
   Phone, 
   Lock, 
+  MapPin,
+  Building,
   AlertCircle, 
   ArrowRight,
   CheckCircle2,
@@ -17,12 +19,14 @@ interface CustomerAuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   initialMode?: 'login' | 'register';
+  promptMessage?: string;
 }
 
 export const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({
   isOpen,
   onClose,
   initialMode = 'login',
+  promptMessage,
 }) => {
   const { login, registerCustomer, loginWithGoogle, error, clearError } = useAuth();
   const { settings } = useStore();
@@ -31,6 +35,8 @@ export const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+  const [address, setAddress] = useState('');
+  const [city, setCity] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -74,6 +80,10 @@ export const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({
         setLocalError('Please enter a valid Pakistani mobile number (e.g. 0300-1234567).');
         return;
       }
+      if (!address.trim()) {
+        setLocalError('Please enter your delivery address.');
+        return;
+      }
       if (password.length < 6) {
         setLocalError('Password must be at least 6 characters long.');
         return;
@@ -89,12 +99,14 @@ export const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({
           fullName,
           email,
           phone,
+          address,
+          city: city || 'Pakistan',
           pass: password,
         });
         onClose();
       } catch (err: any) {
         if (err?.code === 'auth/operation-not-allowed' || err?.message?.includes('operation-not-allowed')) {
-          setLocalError("Email/Password registration is not yet enabled in your Firebase Console. Please click 'Continue with Google' above for 1-click instant login, or enable 'Email/Password' in Firebase Console (Authentication > Sign-in method).");
+          setLocalError("Email/Password registration is not yet enabled in your Firebase Console. Please click 'Continue with Google' above for 1-click instant login.");
         } else {
           setLocalError(err?.message || 'Registration failed.');
         }
@@ -150,6 +162,22 @@ export const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({
               : `Register to shop mobile LCDs, LEDs, and accessories with ${settings.storeName || 'SAAD TRADING COMPANY'}.`}
           </p>
         </div>
+
+        {/* Optional Prompt Banner */}
+        {promptMessage && (
+          <div className="p-3 bg-amber-50 border border-amber-200 rounded-2xl flex items-start gap-2.5 text-xs text-amber-900 animate-pulse">
+            <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+            <span className="font-medium">{promptMessage}</span>
+          </div>
+        )}
+
+        {/* Error Alert */}
+        {(localError || error) && (
+          <div className="p-3 bg-red-50 border border-red-200 rounded-2xl flex items-start gap-2.5 text-xs text-red-800">
+            <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+            <span className="font-medium">{localError || error}</span>
+          </div>
+        )}
 
         {/* Mode Toggle Tabs */}
         <div className="flex bg-slate-100 p-1 rounded-2xl text-xs font-semibold">
@@ -217,11 +245,11 @@ export const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-4 text-xs">
+        <form onSubmit={handleSubmit} className="space-y-3.5 text-xs">
           {mode === 'register' && (
             <>
               <div className="space-y-1">
-                <label className="font-semibold text-slate-700">Full Name</label>
+                <label className="font-semibold text-slate-700">Full Name *</label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <input
@@ -230,13 +258,13 @@ export const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({
                     placeholder="e.g. Usman Ali"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-amber-600"
+                    className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-amber-600"
                   />
                 </div>
               </div>
 
               <div className="space-y-1">
-                <label className="font-semibold text-slate-700">Mobile / WhatsApp Number</label>
+                <label className="font-semibold text-slate-700">Mobile / WhatsApp Number *</label>
                 <div className="relative">
                   <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <input
@@ -245,7 +273,37 @@ export const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({
                     placeholder="0300-1234567"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-amber-600"
+                    className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-amber-600"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-semibold text-slate-700">Delivery Address *</label>
+                <div className="relative">
+                  <MapPin className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
+                  <textarea
+                    required
+                    rows={2}
+                    placeholder="House/Shop #, Street, Area name, Nearest landmark"
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-amber-600 resize-none text-xs"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-semibold text-slate-700">City *</label>
+                <div className="relative">
+                  <Building className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Lahore, Karachi, Rawalpindi"
+                    value={city}
+                    onChange={(e) => setCity(e.target.value)}
+                    className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-amber-600"
                   />
                 </div>
               </div>
@@ -253,7 +311,7 @@ export const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({
           )}
 
           <div className="space-y-1">
-            <label className="font-semibold text-slate-700">Email Address</label>
+            <label className="font-semibold text-slate-700">Email Address *</label>
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
               <input
@@ -262,13 +320,13 @@ export const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({
                 placeholder="name@gmail.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-amber-600"
+                className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-amber-600"
               />
             </div>
           </div>
 
           <div className="space-y-1">
-            <label className="font-semibold text-slate-700">Password</label>
+            <label className="font-semibold text-slate-700">Password *</label>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
               <input
@@ -277,14 +335,14 @@ export const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-amber-600"
+                className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-amber-600"
               />
             </div>
           </div>
 
           {mode === 'register' && (
             <div className="space-y-1">
-              <label className="font-semibold text-slate-700">Confirm Password</label>
+              <label className="font-semibold text-slate-700">Confirm Password *</label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input
@@ -293,7 +351,7 @@ export const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({
                   placeholder="••••••••"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-amber-600"
+                  className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-amber-600"
                 />
               </div>
             </div>
@@ -302,7 +360,7 @@ export const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs uppercase tracking-wider transition-all shadow-md flex items-center justify-center gap-2 disabled:opacity-50"
+            className="w-full py-3 px-4 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs uppercase tracking-wider transition-all shadow-md flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
           >
             <span>{loading ? 'Processing...' : mode === 'login' ? 'Sign In' : 'Create My Account'}</span>
             <ArrowRight className="w-4 h-4" />

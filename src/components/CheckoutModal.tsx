@@ -45,8 +45,13 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     if (userProfile) {
       if (userProfile.fullName) setCustomerName(userProfile.fullName);
       if (userProfile.phone) setPhone(userProfile.phone);
+      if (userProfile.address) setAddress(userProfile.address);
+      if (userProfile.city) setCity(userProfile.city);
+    } else if (currentUser) {
+      if (currentUser.displayName) setCustomerName(currentUser.displayName);
+      if (currentUser.phoneNumber) setPhone(currentUser.phoneNumber);
     }
-  }, [userProfile, isOpen]);
+  }, [userProfile, currentUser, isOpen]);
 
   if (!isOpen) return null;
 

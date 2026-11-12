@@ -1,5 +1,6 @@
 import React from 'react';
 import { useStore } from '../context/StoreContext';
+import { useAuth } from '../context/AuthContext';
 import { formatPKR } from '../data/constants';
 import { 
   X, 
@@ -14,13 +15,16 @@ interface CartDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   onOpenCheckout: () => void;
+  onRequireAuth?: (message?: string) => void;
 }
 
 export const CartDrawer: React.FC<CartDrawerProps> = ({
   isOpen,
   onClose,
   onOpenCheckout,
+  onRequireAuth,
 }) => {
+  const { currentUser } = useAuth();
   const { 
     cart, 
     removeFromCart, 
@@ -201,13 +205,19 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
               <div className="space-y-2">
                 <button
                   onClick={() => {
+                    if (!currentUser) {
+                      if (onRequireAuth) {
+                        onRequireAuth('Please register or sign in to complete your checkout.');
+                      }
+                      return;
+                    }
                     onClose();
                     onOpenCheckout();
                   }}
-                  className="w-full py-3 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs uppercase tracking-wider transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer"
+                  className="w-full py-3 px-4 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs uppercase tracking-wider transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <span>Proceed to Direct Checkout</span>
-                  <ArrowRight className="w-4 h-4 text-amber-400" />
+                  <ArrowRight className="w-4 h-4 text-white" />
                 </button>
 
                 <button

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Product } from '../types';
 import { useStore } from '../context/StoreContext';
+import { useAuth } from '../context/AuthContext';
 import { formatPKR } from '../data/constants';
 import { 
   X, 
@@ -23,14 +24,17 @@ interface ProductDetailsModalProps {
   product: Product | null;
   onClose: () => void;
   onProceedToCheckout: () => void;
+  onRequireAuth?: (message?: string) => void;
 }
 
 export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
   product,
   onClose,
   onProceedToCheckout,
+  onRequireAuth,
 }) => {
   const { addToCart, isInWishlist, toggleWishlist, settings } = useStore();
+  const { currentUser } = useAuth();
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [addedSuccess, setAddedSuccess] = useState(false);
@@ -49,6 +53,12 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
   if (cleanPhone.startsWith('03')) cleanPhone = '92' + cleanPhone.slice(1);
 
   const handleAddToCart = () => {
+    if (!currentUser) {
+      if (onRequireAuth) {
+        onRequireAuth('Please register or sign in to add items to your cart.');
+      }
+      return;
+    }
     if (!inStock) return;
     addToCart(product, quantity);
     setAddedSuccess(true);
@@ -56,10 +66,26 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
   };
 
   const handleBuyNow = () => {
+    if (!currentUser) {
+      if (onRequireAuth) {
+        onRequireAuth('Please register or sign in to proceed with checkout.');
+      }
+      return;
+    }
     if (!inStock) return;
     addToCart(product, quantity);
     onClose();
     onProceedToCheckout();
+  };
+
+  const handleToggleWishlist = () => {
+    if (!currentUser) {
+      if (onRequireAuth) {
+        onRequireAuth('Please register or sign in to add items to your wishlist.');
+      }
+      return;
+    }
+    toggleWishlist(product.id);
   };
 
   const handleWhatsAppOrder = () => {
@@ -128,9 +154,9 @@ Assalam-o-Alaikum ${storeTitle}! I want to order this product. Please share deli
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
-                  toggleWishlist(product.id);
+                  handleToggleWishlist();
                 }}
-                className={`absolute top-4 right-4 p-2.5 rounded-full transition-all z-10 ${
+                className={`absolute top-4 right-4 p-2.5 rounded-full transition-all z-10 cursor-pointer ${
                   isFavorited ? 'bg-rose-50 text-rose-600' : 'bg-slate-100 text-slate-400 hover:text-slate-700'
                 }`}
               >

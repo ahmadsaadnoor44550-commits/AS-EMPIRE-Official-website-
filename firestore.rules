@@ -39,7 +39,7 @@ service cloud.firestore {
     // Customers can read their own orders; Admin can list/manage all orders
     match /orders/{orderId} {
       allow create: if isValidId(orderId) &&
-        request.resource.data.status == 'Pending Confirmation' &&
+        (request.resource.data.status in ['Pending', 'Pending Confirmation']) &&
         request.resource.data.customerName is string &&
         request.resource.data.customerName.size() > 0 &&
         request.resource.data.customerName.size() <= 100 &&
@@ -58,9 +58,9 @@ service cloud.firestore {
       allow get: if isValidId(orderId);
       allow list: if isAdmin() || (isSignedIn() && resource.data.customerId == request.auth.uid);
       allow update: if isAdmin() || (
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt']) &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt', 'statusUpdatedAt']) &&
         request.resource.data.status == 'Cancelled' &&
-        (resource.data.status == 'Pending Confirmation' || resource.data.status == 'Confirmed')
+        (resource.data.status in ['Pending', 'Pending Confirmation', 'Confirmed'])
       );
       allow delete: if isAdmin();
     }

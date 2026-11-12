@@ -15,6 +15,13 @@ import { Product, Order, StoreSettings, CartItem, OrderStatus } from '../types';
 import { DEFAULT_STORE_SETTINGS } from '../data/constants';
 import { useAuth } from './AuthContext';
 
+export interface StatusNotice {
+  orderId: string;
+  status: OrderStatus;
+  message: string;
+  timestamp: number;
+}
+
 interface StoreContextType {
   products: Product[];
   orders: Order[]; // All orders for owner
@@ -25,6 +32,8 @@ interface StoreContextType {
   loadingProducts: boolean;
   loadingOrders: boolean;
   loadingSettings: boolean;
+  orderStatusNotice: StatusNotice | null;
+  clearStatusNotice: () => void;
   
   // Cart Actions
   addToCart: (product: Product, quantity?: number) => void;
@@ -238,10 +247,18 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return () => unsubscribe();
   }, [isOwner]);
 
+  const [orderStatusNotice, setOrderStatusNotice] = useState<StatusNotice | null>(null);
+  const clearStatusNotice = () => setOrderStatusNotice(null);
+
+  const previousStatusesRef = React.useRef<Record<string, OrderStatus>>({});
+  const isFirstCustomerLoadRef = React.useRef<boolean>(true);
+
   // Real-time Customer Orders (Order History for logged-in Customer)
   useEffect(() => {
     if (!currentUser || isOwner) {
       setCustomerOrders([]);
+      previousStatusesRef.current = {};
+      isFirstCustomerLoadRef.current = true;
       return;
     }
 
@@ -255,6 +272,40 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         });
         loaded.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
         setCustomerOrders(loaded);
+
+        // Real-time status change detection
+        if (!isFirstCustomerLoadRef.current) {
+          for (const ord of loaded) {
+            const oldStatus = previousStatusesRef.current[ord.id];
+            if (oldStatus && oldStatus !== ord.status) {
+              let msg = `Your order #${ord.id} status changed to ${ord.status}`;
+              if (ord.status === 'Confirmed') {
+                msg = `Your order #${ord.id} has been confirmed by SAAD TRADING COMPANY.`;
+              } else if (ord.status === 'Shipped') {
+                msg = `Your order #${ord.id} has been shipped! It is on the way.`;
+              } else if (ord.status === 'Delivered') {
+                msg = `Your order #${ord.id} has been delivered! Enjoy your items.`;
+              } else if (ord.status === 'Cancelled') {
+                msg = `Your order #${ord.id} has been cancelled.`;
+              }
+              setOrderStatusNotice({
+                orderId: ord.id,
+                status: ord.status,
+                message: msg,
+                timestamp: Date.now()
+              });
+              break;
+            }
+          }
+        } else {
+          isFirstCustomerLoadRef.current = false;
+        }
+
+        const newMap: Record<string, OrderStatus> = {};
+        loaded.forEach((o) => {
+          newMap[o.id] = o.status;
+        });
+        previousStatusesRef.current = newMap;
       },
       (err) => {
         console.warn('Customer orders history note:', err);
@@ -356,6 +407,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       id: orderId,
       ...(currentUser?.uid ? { customerId: currentUser.uid } : {}),
       customerName: orderData.customerName.trim(),
+      customerEmail: currentUser?.email || '',
       phone: orderData.phone.trim(),
       address: orderData.address.trim(),
       city: orderData.city.trim(),
@@ -364,7 +416,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       deliveryCharges: computedDeliveryFee,
       deliveryMethod: orderData.deliveryMethod || 'courier',
       totalAmount: computedGrandTotal,
-      status: 'Pending Confirmation',
+      status: 'Pending',
+      statusUpdatedAt: new Date().toISOString(),
       notes: orderData.notes?.trim() || '',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
@@ -437,14 +490,16 @@ _Assalam-o-Alaikum SAAD TRADING COMPANY! I have placed this order on your websit
 
   const updateOrderStatus = async (orderId: string, status: OrderStatus) => {
     try {
+      const now = new Date().toISOString();
       const orderRef = doc(db, 'orders', orderId);
       await updateDoc(orderRef, {
         status,
-        updatedAt: new Date().toISOString()
+        statusUpdatedAt: now,
+        updatedAt: now
       });
       // Reflect in local state immediately
-      setOrders((prev) => prev.map((o) => o.id === orderId ? { ...o, status, updatedAt: new Date().toISOString() } : o));
-      setCustomerOrders((prev) => prev.map((o) => o.id === orderId ? { ...o, status, updatedAt: new Date().toISOString() } : o));
+      setOrders((prev) => prev.map((o) => o.id === orderId ? { ...o, status, statusUpdatedAt: now, updatedAt: now } : o));
+      setCustomerOrders((prev) => prev.map((o) => o.id === orderId ? { ...o, status, statusUpdatedAt: now, updatedAt: now } : o));
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `orders/${orderId}`);
     }
@@ -564,6 +619,8 @@ _Assalam-o-Alaikum SAAD TRADING COMPANY! I have placed this order on your websit
         loadingProducts,
         loadingOrders,
         loadingSettings,
+        orderStatusNotice,
+        clearStatusNotice,
         addToCart,
         removeFromCart,
         updateCartQuantity,

@@ -834,19 +834,31 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToStore 
                       </div>
 
                       {/* Status Change Selector */}
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-semibold text-slate-600">Update Status:</span>
-                        <select
-                          value={order.status}
-                          onChange={(e) => updateOrderStatus(order.id, e.target.value as OrderStatus)}
-                          className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-amber-600"
-                        >
-                          <option value="Pending Confirmation">Pending Confirmation</option>
-                          <option value="Confirmed">Confirmed</option>
-                          <option value="Shipped">Shipped</option>
-                          <option value="Delivered">Delivered</option>
-                          <option value="Cancelled">Cancelled</option>
-                        </select>
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-semibold text-slate-600">Update Status:</span>
+                          <select
+                            value={order.status === 'Pending Confirmation' ? 'Pending' : order.status}
+                            onChange={(e) => updateOrderStatus(order.id, e.target.value as OrderStatus)}
+                            className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-amber-600 cursor-pointer"
+                          >
+                            <option value="Pending">Pending</option>
+                            <option value="Confirmed">Confirmed</option>
+                            <option value="Shipped">Shipped</option>
+                            <option value="Delivered">Delivered</option>
+                            <option value="Cancelled">Cancelled</option>
+                          </select>
+                        </div>
+                        {order.statusUpdatedAt && (
+                          <span className="text-[10px] text-slate-500 font-medium">
+                            Changed: {new Date(order.statusUpdatedAt).toLocaleString('en-PK', {
+                              day: 'numeric',
+                              month: 'short',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </span>
+                        )}
                       </div>
                     </div>
 

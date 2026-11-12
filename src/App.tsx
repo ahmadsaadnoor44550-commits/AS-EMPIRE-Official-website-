@@ -24,11 +24,14 @@ import {
   ShieldCheck,
   Truck,
   Smartphone,
-  MessageCircle
+  MessageCircle,
+  Bell,
+  X as XIcon,
+  CheckCircle2
 } from 'lucide-react';
 
 function StorefrontApp() {
-  const { products, loadingProducts, settings } = useStore();
+  const { products, loadingProducts, settings, orderStatusNotice, clearStatusNotice } = useStore();
   const { isOwner, currentUser } = useAuth();
 
   // Navigation View Mode
@@ -51,6 +54,7 @@ function StorefrontApp() {
   const [customerAuthMode, setCustomerAuthMode] = useState<'login' | 'register'>('login');
   const [customerAccountOpen, setCustomerAccountOpen] = useState(false);
   const [selectedProductDetails, setSelectedProductDetails] = useState<Product | null>(null);
+  const [authPromptMessage, setAuthPromptMessage] = useState<string>('');
 
   // Order Success Screen
   const [successOrderId, setSuccessOrderId] = useState<string | null>(null);
@@ -155,9 +159,22 @@ function StorefrontApp() {
     }
   };
 
-  const handleOpenCustomerAuth = (mode: 'login' | 'register' = 'login') => {
+  const handleOpenCustomerAuth = (mode: 'login' | 'register' = 'login', prompt: string = '') => {
+    setAuthPromptMessage(prompt);
     setCustomerAuthMode(mode);
     setCustomerAuthOpen(true);
+  };
+
+  const handleRequireCustomerAuth = (message: string = 'Please register or sign in to continue shopping.') => {
+    handleOpenCustomerAuth('login', message);
+  };
+
+  const handleDirectBuy = (product: Product) => {
+    if (!currentUser) {
+      handleRequireCustomerAuth('Please register or sign in to purchase this product.');
+      return;
+    }
+    setCheckoutOpen(true);
   };
 
   // If in admin mode and verified as owner, render Admin Dashboard
@@ -189,6 +206,42 @@ function StorefrontApp() {
         selectedCategory={selectedCategory}
         setSelectedCategory={setSelectedCategory}
       />
+
+      {/* Real-time Order Status Change Notification Banner */}
+      {orderStatusNotice && (
+        <div className="sticky top-20 z-30 bg-amber-500 text-white shadow-md animate-fadeIn px-4 py-3 border-b border-amber-600">
+          <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center shrink-0">
+                <Bell className="w-4 h-4 text-white animate-bounce" />
+              </div>
+              <div className="text-xs sm:text-sm font-medium">
+                <strong className="font-bold underline mr-1.5">Order #{orderStatusNotice.orderId}:</strong>
+                {orderStatusNotice.message}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  setCustomerAccountOpen(true);
+                  clearStatusNotice();
+                }}
+                className="px-3.5 py-1.5 rounded-xl bg-white text-slate-900 font-bold text-xs hover:bg-slate-100 transition-all shadow-sm cursor-pointer"
+              >
+                View in My Orders
+              </button>
+              <button
+                onClick={clearStatusNotice}
+                className="p-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-all cursor-pointer"
+                title="Dismiss"
+              >
+                <XIcon className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 3. Pure White Hero Banner */}
       {!searchQuery && selectedCategory === 'All' && (
@@ -301,7 +354,8 @@ function StorefrontApp() {
                 key={product.id}
                 product={product}
                 onOpenDetails={(p) => setSelectedProductDetails(p)}
-                onDirectBuy={() => setCheckoutOpen(true)}
+                onDirectBuy={() => handleDirectBuy(product)}
+                onRequireAuth={handleRequireCustomerAuth}
               />
             ))}
           </div>
@@ -377,13 +431,21 @@ function StorefrontApp() {
       <ProductDetailsModal
         product={selectedProductDetails}
         onClose={() => setSelectedProductDetails(null)}
-        onProceedToCheckout={() => setCheckoutOpen(true)}
+        onProceedToCheckout={() => {
+          if (selectedProductDetails) {
+            handleDirectBuy(selectedProductDetails);
+          } else {
+            setCheckoutOpen(true);
+          }
+        }}
+        onRequireAuth={handleRequireCustomerAuth}
       />
 
       <CartDrawer
         isOpen={cartOpen}
         onClose={() => setCartOpen(false)}
         onOpenCheckout={() => setCheckoutOpen(true)}
+        onRequireAuth={handleRequireCustomerAuth}
       />
 
       <CheckoutModal
@@ -427,8 +489,12 @@ function StorefrontApp() {
       {/* Customer Auth Modal */}
       <CustomerAuthModal
         isOpen={customerAuthOpen}
-        onClose={() => setCustomerAuthOpen(false)}
+        onClose={() => {
+          setCustomerAuthOpen(false);
+          setAuthPromptMessage('');
+        }}
         initialMode={customerAuthMode}
+        promptMessage={authPromptMessage}
       />
 
       {/* Customer Account Modal */}

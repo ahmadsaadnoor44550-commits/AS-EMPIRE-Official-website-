@@ -22,7 +22,8 @@ interface AuthContextType {
   error: string | null;
   login: (email: string, pass: string) => Promise<void>;
   loginWithGoogle: () => Promise<void>;
-  registerCustomer: (data: { fullName: string; email: string; phone: string; pass: string }) => Promise<void>;
+  registerCustomer: (data: { fullName: string; email: string; phone: string; address?: string; city?: string; pass: string }) => Promise<void>;
+  updateCustomerProfile: (data: Partial<UserProfile>) => Promise<void>;
   registerOwner: (data: { fullName: string; email: string; phone: string; pass: string }) => Promise<void>;
   createAdditionalOwnerAccount: (data: { fullName: string; email: string; phone: string; pass: string }) => Promise<void>;
   deleteCustomer: (uid: string) => Promise<void>;
@@ -93,6 +94,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 fullName: user.displayName || (role === 'owner' ? 'Ahmad Saad (Owner)' : 'Customer'),
                 email: user.email || '',
                 phone: user.phoneNumber || '',
+                address: '',
+                city: '',
                 role: role,
                 createdAt: new Date().toISOString()
               };
@@ -178,8 +181,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Customer Registration
-  const registerCustomer = async (data: { fullName: string; email: string; phone: string; pass: string }) => {
+  // Customer Registration with Name, Email, Phone, Delivery Address, Password
+  const registerCustomer = async (data: { 
+    fullName: string; 
+    email: string; 
+    phone: string; 
+    address?: string; 
+    city?: string; 
+    pass: string 
+  }) => {
     setError(null);
     try {
       const res = await createUserWithEmailAndPassword(auth, data.email.trim(), data.pass);
@@ -192,6 +202,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         fullName: data.fullName.trim(),
         email: data.email.trim().toLowerCase(),
         phone: data.phone.trim(),
+        address: data.address?.trim() || '',
+        city: data.city?.trim() || '',
         role: 'customer',
         createdAt: new Date().toISOString()
       };
@@ -201,6 +213,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsOwner(false);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Customer registration failed.';
+      setError(msg);
+      throw err;
+    }
+  };
+
+  // Update Customer Profile (name, phone, address, city)
+  const updateCustomerProfile = async (data: Partial<UserProfile>) => {
+    if (!currentUser) return;
+    setError(null);
+    try {
+      const updatedData: Partial<UserProfile> = {
+        ...data,
+        updatedAt: new Date().toISOString(),
+      };
+      if (data.fullName) {
+        await updateProfile(currentUser, { displayName: data.fullName.trim() });
+      }
+      const userDocRef = doc(db, 'users', currentUser.uid);
+      await setDoc(userDocRef, updatedData, { merge: true });
+      setUserProfile((prev) => (prev ? { ...prev, ...updatedData } : null));
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to update profile.';
       setError(msg);
       throw err;
     }
@@ -305,6 +339,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         login,
         loginWithGoogle,
         registerCustomer,
+        updateCustomerProfile,
         registerOwner,
         createAdditionalOwnerAccount,
         deleteCustomer,

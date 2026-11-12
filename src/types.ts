@@ -23,12 +23,13 @@ export interface OrderItem {
   category?: string;
 }
 
-export type OrderStatus = 'Pending Confirmation' | 'Confirmed' | 'Shipped' | 'Delivered' | 'Cancelled';
+export type OrderStatus = 'Pending' | 'Pending Confirmation' | 'Confirmed' | 'Shipped' | 'Delivered' | 'Cancelled';
 
 export interface Order {
   id: string; // e.g. ASE-2026-9821
   customerId?: string; // UID if customer is registered
   customerName: string;
+  customerEmail?: string;
   phone: string;
   address: string;
   city: string;
@@ -38,6 +39,7 @@ export interface Order {
   deliveryMethod?: 'courier' | 'pickup';
   totalAmount: number;
   status: OrderStatus;
+  statusUpdatedAt?: string;
   notes?: string;
   createdAt: string;
   updatedAt?: string;
@@ -71,8 +73,11 @@ export interface UserProfile {
   fullName: string;
   email: string;
   phone: string;
+  address?: string;
+  city?: string;
   role: 'customer' | 'owner';
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface CartItem {

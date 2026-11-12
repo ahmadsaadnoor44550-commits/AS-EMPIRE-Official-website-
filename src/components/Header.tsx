@@ -145,17 +145,19 @@ export const Header: React.FC<HeaderProps> = ({
             ) : currentUser ? (
               <button
                 onClick={onOpenCustomerAccount}
-                className="flex items-center gap-1.5 p-2 sm:px-3 sm:py-1.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 hover:bg-amber-100 text-xs font-semibold transition-all"
+                className="flex items-center gap-1.5 p-2 sm:px-3 sm:py-1.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 hover:bg-amber-100 text-xs font-semibold transition-all cursor-pointer"
                 title="Customer Account"
               >
-                <User className="w-4 h-4 text-amber-700" />
+                <div className="w-5 h-5 rounded-full bg-amber-600 text-white text-[10px] font-bold flex items-center justify-center">
+                  {userProfile?.fullName ? userProfile.fullName.charAt(0).toUpperCase() : 'C'}
+                </div>
                 <span className="hidden sm:inline truncate max-w-[100px]">{userProfile?.fullName || 'My Account'}</span>
               </button>
             ) : (
               <button
                 onClick={() => onOpenCustomerAuth('login')}
-                className="flex items-center gap-1.5 p-2 sm:px-3 sm:py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-all"
-                title="Sign In"
+                className="flex items-center gap-1.5 p-2 sm:px-3 sm:py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-semibold transition-all cursor-pointer"
+                title="Sign In / Register"
               >
                 <User className="w-4 h-4 text-slate-600" />
                 <span className="hidden sm:inline">Sign In</span>
@@ -165,7 +167,7 @@ export const Header: React.FC<HeaderProps> = ({
             {/* Wishlist */}
             <button
               onClick={onOpenWishlist}
-              className="relative p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-600 hover:text-rose-600 transition-all"
+              className="relative p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-600 hover:text-rose-600 transition-all cursor-pointer"
               aria-label="Wishlist"
             >
               <Heart className="w-4 h-4" />
@@ -179,7 +181,7 @@ export const Header: React.FC<HeaderProps> = ({
             {/* Cart Trigger */}
             <button
               onClick={onOpenCart}
-              className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-sm transition-all"
+              className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-sm transition-all cursor-pointer"
               aria-label="Shopping Cart"
             >
               <div className="relative">
@@ -192,18 +194,6 @@ export const Header: React.FC<HeaderProps> = ({
               </div>
               <span className="hidden lg:inline">{formatPKR(cartSubtotal)}</span>
             </button>
-
-            {/* ONLY visible if the owner is already signed in */}
-            {isOwner && (
-              <button
-                onClick={onOpenOwnerPortal}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-600 border border-amber-600 text-white shadow-sm"
-                title="Owner Admin Dashboard"
-              >
-                <Shield className="w-3.5 h-3.5" />
-                <span className="hidden md:inline">Owner Dashboard</span>
-              </button>
-            )}
 
           </div>
         </div>
@@ -336,21 +326,23 @@ export const Header: React.FC<HeaderProps> = ({
               <span>Track Order</span>
             </button>
 
-            <button
-              onClick={() => {
-                onOpenOwnerPortal();
-                setMobileMenuOpen(false);
-              }}
-              className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold text-amber-950 bg-amber-50 border border-amber-200 hover:bg-amber-100 transition-all cursor-pointer"
-            >
-              <div className="flex items-center gap-2">
-                <Crown className="w-4 h-4 text-amber-700" />
-                <span>{isOwner ? 'Owner Dashboard (Manage Products)' : 'Owner Sign In / Admin Portal'}</span>
-              </div>
-              <span className="text-[10px] text-amber-800 bg-amber-200/60 px-2 py-0.5 rounded font-mono font-bold">
-                Admin
-              </span>
-            </button>
+            {isOwner && (
+              <button
+                onClick={() => {
+                  onOpenOwnerPortal();
+                  setMobileMenuOpen(false);
+                }}
+                className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold text-amber-950 bg-amber-50 border border-amber-200 hover:bg-amber-100 transition-all cursor-pointer"
+              >
+                <div className="flex items-center gap-2">
+                  <Crown className="w-4 h-4 text-amber-700" />
+                  <span>Owner Dashboard (Manage Products)</span>
+                </div>
+                <span className="text-[10px] text-amber-800 bg-amber-200/60 px-2 py-0.5 rounded font-mono font-bold">
+                  Admin
+                </span>
+              </button>
+            )}
           </div>
         </div>
       )}

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Product } from '../types';
 import { useStore } from '../context/StoreContext';
+import { useAuth } from '../context/AuthContext';
 import { formatPKR } from '../data/constants';
 import { ShoppingBag, Heart, Eye, MessageCircle, Check, Zap } from 'lucide-react';
 
@@ -8,10 +9,17 @@ interface ProductCardProps {
   product: Product;
   onOpenDetails: (product: Product) => void;
   onDirectBuy?: (product: Product) => void;
+  onRequireAuth?: (message?: string) => void;
 }
 
-export const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenDetails, onDirectBuy }) => {
+export const ProductCard: React.FC<ProductCardProps> = ({ 
+  product, 
+  onOpenDetails, 
+  onDirectBuy,
+  onRequireAuth 
+}) => {
   const { addToCart, isInWishlist, toggleWishlist, settings } = useStore();
+  const { currentUser } = useAuth();
   const [addedAnimation, setAddedAnimation] = useState(false);
 
   const isFavorited = isInWishlist(product.id);
@@ -24,6 +32,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenDetails
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (!currentUser) {
+      if (onRequireAuth) {
+        onRequireAuth('Please register or sign in to add items to your cart.');
+      }
+      return;
+    }
     if (!inStock) return;
     addToCart(product, 1);
     setAddedAnimation(true);
@@ -32,6 +46,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenDetails
 
   const handleDirectBuy = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (!currentUser) {
+      if (onRequireAuth) {
+        onRequireAuth('Please register or sign in to buy products.');
+      }
+      return;
+    }
     if (!inStock) return;
     addToCart(product, 1);
     if (onDirectBuy) {
@@ -39,6 +59,17 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenDetails
     } else {
       onOpenDetails(product);
     }
+  };
+
+  const handleToggleWishlist = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!currentUser) {
+      if (onRequireAuth) {
+        onRequireAuth('Please register or sign in to save items to your wishlist.');
+      }
+      return;
+    }
+    toggleWishlist(product.id);
   };
 
   const handleWhatsAppQuickOrder = (e: React.MouseEvent) => {
@@ -82,11 +113,8 @@ Assalam-o-Alaikum ${storeTitle}! I am interested in purchasing this product. Ple
 
         {/* Wishlist Button */}
         <button
-          onClick={(e) => {
-            e.stopPropagation();
-            toggleWishlist(product.id);
-          }}
-          className={`absolute top-3 right-3 p-2 rounded-full transition-all ${
+          onClick={handleToggleWishlist}
+          className={`absolute top-3 right-3 p-2 rounded-full transition-all cursor-pointer ${
             isFavorited ? 'bg-rose-50 text-rose-600' : 'bg-white/90 text-slate-400 hover:text-slate-700 shadow-sm'
           }`}
           aria-label="Wishlist"
