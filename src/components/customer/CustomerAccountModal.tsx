@@ -223,7 +223,7 @@ export const CustomerAccountModal: React.FC<CustomerAccountModalProps> = ({
 
       <div className="relative w-full max-w-3xl bg-white border border-slate-200 rounded-3xl p-5 sm:p-7 space-y-5 shadow-2xl z-10 max-h-[92vh] flex flex-col">
         
-        {/* Header with Daraz-Style Profile Identity */}
+        {/* Header with Customer Profile Identity */}
         <div className="flex items-center justify-between border-b border-slate-100 pb-4 shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-2xl bg-amber-500 text-white flex items-center justify-center font-bold text-xl shadow-md">
@@ -235,7 +235,7 @@ export const CustomerAccountModal: React.FC<CustomerAccountModalProps> = ({
                   {userProfile?.fullName || 'Valued Customer'}
                 </h3>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 uppercase tracking-wider">
-                  Daraz Customer
+                  Verified Customer 
                 </span>
               </div>
               <p className="text-xs text-slate-500 truncate max-w-xs sm:max-w-md">
