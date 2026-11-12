@@ -281,7 +281,7 @@ export const OrderReceiptModal: React.FC<OrderReceiptModalProps> = ({
               )}
               {!settings.easyPaisaAccount && !settings.jazzCashAccount && !settings.bankAccountDetails && (
                 <p className="text-slate-500">
-                  Cash On Delivery or direct WhatsApp confirmation with the owner prior to delivery.
+                  Advance payment via Easypaisa. Your order is confirmed after the payment screenshot is verified by the owner on Whatsapp.
                 </p>
               )}
             </div>

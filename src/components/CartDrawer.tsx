@@ -199,7 +199,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
               </div>
 
               <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-[11px] text-amber-900">
-                Delivery across Pakistan. Instant direct order booking with Cash on Delivery (COD) or EasyPaisa / JazzCash.
+                Delivery across Pakistan. Advance payment via EasyPaisa required.Order is comfirmed after payment is verified.
               </div>
 
               <div className="space-y-2">
